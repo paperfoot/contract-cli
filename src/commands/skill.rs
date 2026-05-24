@@ -16,9 +16,32 @@ description: >
 
 `contract` is a stateful CLI for drafting and rendering business contracts.
 
+### Critical: shared state with invoice-cli
+
+The shared SQLite at `~/Library/Application Support/com.paperfoot.accounting/accounting.db`
+is the single source of truth for **issuers** (your companies) and **clients**
+(counterparties) across the whole accounting suite. `invoice` writes here too.
+
+**Before creating a new issuer or client, ALWAYS list first:**
+
+```
+contract issuer list      # or: invoice issuer list
+contract clients list     # or: invoice clients list
+```
+
+If the entity already exists under any slug, reuse it. Don't create
+`alberto-pertusa` if `london-psychiatry-clinic` already covers the same
+person — pick whichever slug the user means, or `contract clients edit`
+to enrich it (legal-name, company-no, jurisdiction are the contract-only
+fields, added in V7).
+
 ### Quick start
 
 ```
+contract issuer list                                # is there already a "boris"?
+contract clients list                               # is there already a client?
+
+# If not, add — same way invoice-cli adds them, same DB:
 contract issuer add acme --name "Acme Studio" --jurisdiction sg \
     --address "1 Marina Bay\nSingapore 018989"
 contract clients add meridian --name "Meridian & Co." \

@@ -30,12 +30,16 @@ pub struct ContractRenderData {
     pub effective_date_display: String,
     pub end_date_display: Option<String>,
     pub term_text: String,
+    /// Compact term phrase for header strips ("1 year", "until 1 Jul 2026").
+    pub term_short: String,
     pub governing_law: String,
     pub jurisdiction_phrase: String,
     pub venue: Option<String>,
     pub status: String,
     pub draft_watermark: bool,
     pub fee_text: Option<String>,
+    /// Compact fee phrase for header strips ("S$8,400 fixed").
+    pub fee_short: Option<String>,
     pub our_party: PartyData,
     pub their_party: PartyData,
     pub clauses: Vec<ClauseRenderData>,
@@ -179,6 +183,46 @@ fn term_text(c: &Contract) -> String {
     } else {
         "indefinitely until terminated as provided below".into()
     }
+}
+
+fn term_short(c: &Contract) -> String {
+    if let Some(end) = &c.end_date {
+        // Compact date — use "%-d %b %Y" so "1 Jul 2026" not "1 July 2026"
+        NaiveDate::parse_from_str(end, "%Y-%m-%d")
+            .map(|d| format!("until {}", d.format("%-d %b %Y")))
+            .unwrap_or_else(|_| format!("until {end}"))
+    } else if let Some(m) = c.term_months {
+        if m % 12 == 0 {
+            let y = m / 12;
+            if y == 1 { "1 year".into() } else { format!("{y} years") }
+        } else if m == 1 {
+            "1 month".into()
+        } else {
+            format!("{m} months")
+        }
+    } else {
+        "Indefinite".into()
+    }
+}
+
+fn fee_short(c: &Contract) -> Option<String> {
+    let kind = c.fee_type.as_deref()?;
+    let amt = c.fee_amount_minor?;
+    let cur = c.fee_currency.clone().unwrap_or_default();
+    let symbol = finance_core::money::currency_symbol(&cur);
+    let amt_str = finance_core::money::MinorUnits(amt).format_number();
+    let amt_display = if symbol.is_empty() {
+        format!("{} {}", amt_str, cur)
+    } else {
+        format!("{}{}", symbol, amt_str)
+    };
+    Some(match kind {
+        "fixed" => format!("{amt_display} fixed"),
+        "hourly" => format!("{amt_display}/hr"),
+        "daily" => format!("{amt_display}/day"),
+        "retainer" => format!("{amt_display}/month"),
+        _ => amt_display,
+    })
 }
 
 fn ip_assignment_text(terms: &serde_json::Value) -> String {
@@ -430,12 +474,14 @@ pub fn build_render_data(
         effective_date_display: fmt_date(&contract.effective_date),
         end_date_display: contract.end_date.as_deref().map(fmt_date),
         term_text: term_text(contract),
+        term_short: term_short(contract),
         governing_law: contract.governing_law.clone(),
         jurisdiction_phrase: jurisdiction_phrase(&contract.governing_law),
         venue: contract.venue.clone(),
         status: contract.status.clone(),
         draft_watermark: draft,
         fee_text: fee_text(contract),
+        fee_short: fee_short(contract),
         our_party: party_display(issuer, &our_role),
         their_party: client_display(client, &their_role),
         clauses: render_clauses,

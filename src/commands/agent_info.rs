@@ -77,11 +77,21 @@ pub fn run(_ctx: Ctx) -> Result<()> {
         "fee_spec": "type:amount:currency — e.g. fixed:8400:SGD | hourly:200:SGD | daily:1500:SGD | retainer:5000:SGD",
         "first_run": [
             "contract doctor --json",
+            "contract issuer list --json     # CHECK FIRST — shared with invoice-cli",
+            "contract clients list --json    # CHECK FIRST — shared with invoice-cli",
+            "# Only if a needed issuer/client is missing, then:",
             "contract issuer add <slug> --name <display-name> --jurisdiction sg|uk|us|eu --address \"line1\\nline2\"",
             "contract clients add <slug> --name <client-name> --legal-name <legal> --address \"line1\\nline2\"",
             "contract new --kind nda --as <issuer> --client <client> --purpose 'description'",
             "contract render <number> --open",
         ],
+        "shared_state": {
+            "database": database.clone(),
+            "shared_with": ["invoice-cli (binary: invoice)"],
+            "shared_tables": ["issuers", "clients", "number_series"],
+            "discovery_workflow": "Before creating a new issuer or client, ALWAYS run `contract issuer list --json` and `contract clients list --json` (or the invoice-cli equivalents). The accounting suite's whole point is one source of truth — duplicating entities here pollutes invoicing too. If the entity exists under a different slug, prefer using the existing slug over creating a new one.",
+            "legal_fields_on_clients": "Three columns added in V7 are contract-specific: `legal_name`, `company_no`, `legal_jurisdiction`. If an existing client (from invoice-cli) is missing them, fill via: contract clients edit <slug> --legal-name X --company-no Y --jurisdiction Z."
+        },
         "examples": [
             { "goal": "Quick mutual NDA",
               "command": "contract new --kind nda --as acme --client meridian --purpose 'evaluation of a joint product' --term-years 3" },
@@ -93,6 +103,7 @@ pub fn run(_ctx: Ctx) -> Result<()> {
               "command": "contract sign NDA-acme-2026-0001 --side us --name 'B. Djordjevic' --title CEO; contract sign NDA-acme-2026-0001 --side them --name 'Sophie Lin' --title 'Head of Marketing'" },
         ],
         "guardrails": [
+            "BEFORE creating any issuer or client, run `contract issuer list` and `contract clients list` — the DB is shared with invoice-cli; duplicates pollute both tools.",
             "Run doctor before first use.",
             "Use --json for agents; stdout is data, stderr is diagnostics.",
             "Drafts render with a DRAFT watermark by default. Use --final to suppress before sending out for signature.",

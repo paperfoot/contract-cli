@@ -92,15 +92,44 @@ pub fn run(ctx: Ctx) -> Result<()> {
                 Ok(list) if list.is_empty() => checks.push(Check {
                     name: "issuers".into(),
                     status: "warn",
-                    message: "no issuers configured. First run: contract issuer add <slug> --name X --address ...".into(),
+                    message: "no issuers configured (shared with invoice-cli). First run: contract issuer add <slug> --name X --address ...".into(),
                 }),
-                Ok(list) => checks.push(Check {
-                    name: "issuers".into(),
-                    status: "pass",
-                    message: format!("{} configured", list.len()),
-                }),
+                Ok(list) => {
+                    let slugs: Vec<&str> = list.iter().map(|i| i.slug.as_str()).collect();
+                    checks.push(Check {
+                        name: "issuers".into(),
+                        status: "pass",
+                        message: format!("{} shared with invoice-cli: {}", list.len(), slugs.join(", ")),
+                    });
+                }
                 Err(e) => checks.push(Check {
                     name: "issuers".into(),
+                    status: "fail",
+                    message: format!("{e}"),
+                }),
+            }
+            match crate::db::client_list(&conn) {
+                Ok(list) if list.is_empty() => checks.push(Check {
+                    name: "clients".into(),
+                    status: "warn",
+                    message: "no clients configured (shared with invoice-cli). Add via: contract clients add <slug> ...".into(),
+                }),
+                Ok(list) => {
+                    let slugs: Vec<&str> = list.iter().map(|c| c.slug.as_str()).collect();
+                    let with_legal = list.iter().filter(|c| c.legal_name.is_some()).count();
+                    let msg = if with_legal == list.len() {
+                        format!("{} shared with invoice-cli, all with legal-name: {}", list.len(), slugs.join(", "))
+                    } else {
+                        format!("{} shared with invoice-cli ({} missing legal-name — fix via `contract clients edit <slug> --legal-name X --company-no Y --jurisdiction Z`): {}", list.len(), list.len() - with_legal, slugs.join(", "))
+                    };
+                    checks.push(Check {
+                        name: "clients".into(),
+                        status: if with_legal == list.len() { "pass" } else { "warn" },
+                        message: msg,
+                    });
+                }
+                Err(e) => checks.push(Check {
+                    name: "clients".into(),
                     status: "fail",
                     message: format!("{e}"),
                 }),
