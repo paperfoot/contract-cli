@@ -258,26 +258,52 @@
 }
 
 #let signature-block(sig, theme) = {
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: mm-sp.l,
-    signature-pair(
-      theme,
-      sig.our-label,
-      sig.our-name,
-      sig.at("our-signer-name", default: none),
-      sig.at("our-signer-title", default: none),
-      sig.at("our-signer-date", default: none),
-    ),
-    signature-pair(
-      theme,
-      sig.their-label,
-      sig.their-name,
-      sig.at("their-signer-name", default: none),
-      sig.at("their-signer-title", default: none),
-      sig.at("their-signer-date", default: none),
-    ),
-  )
+  // breakable: false — execution block must NEVER split across pages.
+  // If there isn't enough room left on the current page, Typst pushes the
+  // whole signature block to the next page.
+  block(breakable: false, [
+    #grid(
+      columns: (1fr, 1fr),
+      column-gutter: mm-sp.l,
+      signature-pair(
+        theme,
+        sig.our-label,
+        sig.our-name,
+        sig.at("our-signer-name", default: none),
+        sig.at("our-signer-title", default: none),
+        sig.at("our-signer-date", default: none),
+      ),
+      signature-pair(
+        theme,
+        sig.their-label,
+        sig.their-name,
+        sig.at("their-signer-name", default: none),
+        sig.at("their-signer-title", default: none),
+        sig.at("their-signer-date", default: none),
+      ),
+    )
+  ])
+}
+
+// ─── Parties prose block ──────────────────────────────────────────────────
+// Renders `data.parties-prose` as the traditional UK numbered (1)/(2) list,
+// with "; and" between parties and a full stop after the last one.
+
+#let parties-prose-block(prose-lines, theme) = {
+  block(breakable: false, [
+    #for (i, line) in prose-lines.enumerate() [
+      #v(3pt)
+      #grid(
+        columns: (10mm, 1fr),
+        column-gutter: 2mm,
+        align: (right + top, left + top),
+        text(size: 9.6pt, weight: 500)[(#str(i + 1))],
+        // The Rust side emits `*NAME*` for the bold party name — eval the
+        // whole string as markup so Typst interprets the bold marker.
+        eval(line + if i == prose-lines.len() - 1 { "." } else { "; and" }, mode: "markup"),
+      )
+    ]
+  ])
 }
 
 // ─── Draft watermark ───────────────────────────────────────────────────────
@@ -292,7 +318,17 @@
   )
 }
 
+// ─── Section label helper (DATED / PARTIES / AGREED TERMS) ─────────────────
+// Single point of truth — call from each template so labels look identical.
+
+#let section-label(theme, txt, size: 9pt, weight: 600, tracking: 0.6pt) = {
+  text(font: th(theme, "display-font", ("Helvetica Neue",)),
+       size: size, weight: weight, tracking: tracking)[#upper(txt)]
+}
+
 // ─── Compact page-2+ header strip ─────────────────────────────────────────
+// Carries the document type + reference. Page count lives in the FOOTER —
+// avoiding double-stamping the same info top and bottom of the page.
 
 #let compact-strip(theme) = {
   let mute = th(theme, "mute", rgb("#666666"))
@@ -302,12 +338,10 @@
       align: (left + horizon, right + horizon),
       context fit-size(
         (8pt, 7.5pt, 7pt),
-        140mm,
+        160mm,
         s => text(size: s, fill: mute, tracking: 0.3pt)[#upper(data.kind-label) · No. #data.number],
       ),
-      context text(size: 7.5pt, fill: mute, tracking: 0.3pt)[
-        Page #here().page() / #counter(page).final().first()
-      ],
+      [],
     )
     #v(sp.xs)
     #hairline(theme)
@@ -324,9 +358,12 @@
     #grid(
       columns: (1fr, auto),
       align: (left + horizon, right + horizon),
-      text(size: 7pt, fill: mute, tracking: 0.4pt)[#upper(data.kind-label) · No. #data.number],
-      context text(size: 7pt, fill: mute, tracking: 0.4pt)[
-        #here().page() / #counter(page).final().first()
+      // Internal reference code lives only in the footer, at small size,
+      // so it doesn't intrude on the body. Useful for filing, invisible
+      // on a casual read.
+      text(size: 6.5pt, fill: mute, tracking: 0.4pt)[Ref. #data.number],
+      context text(size: 6.5pt, fill: mute, tracking: 0.4pt)[
+        Page #here().page() of #counter(page).final().first()
       ],
     )
   ]

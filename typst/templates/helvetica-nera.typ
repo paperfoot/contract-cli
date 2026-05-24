@@ -1,12 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // helvetica-nera — Sober corporate/legal instrument.
-// Left-aligned "instrument panel" header (per Codex's layout suggestion):
-// kind + number + effective + law in a 2x2 docket grid up top, then the
-// engagement name large left-aligned, then parties as the natural columns.
-// White paper, pure black, no accent colour anywhere.
+// Left-aligned engagement name leads, kind acts as subtitle in mute.
+// Real-contract conventions: no eyebrow, no reference code in body,
+// "DATED" line + numbered (1)/(2) parties prose, full-black clauses.
 // ═══════════════════════════════════════════════════════════════════════════
 
-#import "../shared/contract.typ": data, lbl, hairline, fit-size, party-block, clauses-block, signature-block, page-shell, sp, mm-sp, render-markdown
+#import "../shared/contract.typ": data, lbl, hairline, fit-size, parties-prose-block, signature-block, page-shell, render-markdown, section-label, sp, mm-sp
 
 #let theme = (
   ink:         rgb("#111111"),
@@ -19,7 +18,7 @@
   body-font:    ("Helvetica Neue", "Helvetica", "Inter", "Arial"),
   mono-font:    ("Menlo", "DejaVu Sans Mono"),
   label-style: "upper",
-  margin: (top: 22mm, bottom: 20mm, left: 22mm, right: 22mm),
+  margin: (top: 24mm, bottom: 22mm, left: 24mm, right: 24mm),
 )
 
 #show: body => page-shell(theme, body)
@@ -35,67 +34,60 @@
 )
 #set par(leading: 5.6pt, spacing: 5.6pt, justify: true)
 
-// ─── INSTRUMENT PANEL (2-row docket strip) ──
-#let panel-cell(lbl-t, value, align-side: left) = [
-  #align(align-side)[
-    #text(size: 7.5pt, fill: theme.mute, tracking: 1.4pt)[#upper(lbl-t)]\
-    #v(1pt)
-    #text(size: 9.5pt)[#value]
-  ]
-]
-
-#grid(
-  columns: (1fr, auto),
-  row-gutter: 4mm,
-  panel-cell("Document", data.kind-label),
-  panel-cell("Reference", data.number, align-side: right),
-  panel-cell("Effective", data.effective-date-display),
-  panel-cell("Governing law", data.governing-law, align-side: right),
-)
-
-#v(mm-sp.m)
-#line(length: 100%, stroke: 0.6pt + theme.ink)
-#v(mm-sp.m)
-
-// ─── TITLE (left-aligned, the engagement name leads) ──
+// ─── HERO (left-aligned, the engagement leads) ──
 #fit-size(
   (22pt, 20pt, 19pt, 18pt),
   155mm,
-  s => text(font: theme.display-font, size: s, weight: 700, tracking: -0.2pt)[#data.title],
+  s => text(font: theme.display-font, size: s, weight: 700, tracking: -0.2pt)[#data.kind-label],
 )
-
-#v(mm-sp.m)
-#line(length: 100%, stroke: 0.3pt + theme.hair)
-#v(mm-sp.m)
-
-// ─── PARTIES ──
-#grid(
-  columns: (1fr, 1fr),
-  column-gutter: 14mm,
-  party-block(data.our-party, theme),
-  party-block(data.their-party, theme),
-)
-
-#v(mm-sp.s)
-#line(length: 100%, stroke: 0.3pt + theme.hair)
-#v(mm-sp.s)
-
-// Compact docket for fee (the other key facts are already in the instrument panel)
-#if data.fee-short != none [
-  #grid(
-    columns: (auto, 1fr),
-    column-gutter: 6mm,
-    text(size: 7.5pt, fill: theme.mute, tracking: 1.2pt)[#upper("Fee")],
-    text(size: 9.5pt)[#data.fee-short]
-  )
-  #v(mm-sp.s)
-  #line(length: 100%, stroke: 0.3pt + theme.hair)
-  #v(mm-sp.s)
+#if data.subtitle != none [
+  #v(4pt)
+  #text(font: theme.display-font, size: 12pt, weight: 400, fill: theme.mute)[#data.subtitle]
 ]
 
 #v(mm-sp.s)
+#line(length: 100%, stroke: 0.6pt + theme.ink)
+#v(mm-sp.s)
 
-// ─── CLAUSES (no accent colour — full black) ──
+// ─── DATED ──
+#section-label(theme, "Dated") #h(6pt) #text(size: 9.6pt)[#data.effective-date-display]
+
+#v(mm-sp.s)
+
+// ─── PARTIES ──
+#section-label(theme, "Parties")
+#v(2pt)
+#parties-prose-block(data.parties-prose, theme)
+
+#v(mm-sp.s)
+#line(length: 100%, stroke: 0.3pt + theme.hair)
+#v(mm-sp.s)
+
+// ─── KEY TERMS ──
+#let cells = (("Term", data.term-short), ("Governing law", data.governing-law))
+#if data.fee-short != none {
+  cells = cells + (("Fee", data.fee-short),)
+}
+#grid(
+  columns: cells.map(_ => 1fr),
+  column-gutter: 8mm,
+  align: (left + horizon, left + horizon, left + horizon),
+  ..cells.map(((lbl-t, val)) => [
+    #text(size: 7.5pt, fill: theme.mute, tracking: 1.2pt)[#upper(lbl-t)]\
+    #v(1pt)
+    #text(size: 9.5pt)[#val]
+  ])
+)
+
+#v(mm-sp.s)
+#line(length: 100%, stroke: 0.3pt + theme.hair)
+#v(mm-sp.m)
+
+// ─── AGREED TERMS ──
+#section-label(theme, "Agreed terms")
+#v(mm-sp.xs)
+
+// ─── CLAUSES (mute number, no accent) ──
 #for clause in data.clauses {
   block(breakable: true, spacing: mm-sp.s, [
     #grid(
@@ -112,6 +104,6 @@
   ])
 }
 
-// ─── SIGNATURE (no shout) ──
+// ─── SIGNATURE ──
 #v(mm-sp.l)
 #signature-block(data.signature, theme)

@@ -24,13 +24,24 @@ use crate::typst_assets;
 #[serde(rename_all = "kebab-case")]
 pub struct ContractRenderData {
     pub kind: String,
+    /// Formal document type — the title of the page (e.g. "Consulting
+    /// Services Agreement", "Mutual Non-Disclosure Agreement"). This is
+    /// what real contracts put at the top, not the kind tag from the CLI.
     pub kind_label: String,
+    /// Internal reference code (CTR-..., NDA-...). Rendered only in the
+    /// page footer at small size for filing purposes — never on the body.
     pub number: String,
-    pub title: String,
+    /// User-supplied contract title (e.g. project name). Rendered as a
+    /// subtitle UNDER the formal kind-label *only* when the user gave a
+    /// meaningful title (i.e. not the auto-generated "Kind — A × B").
+    /// `None` suppresses the subtitle entirely.
+    pub subtitle: Option<String>,
+    /// Effective date in display format ("24 May 2026"). Used in the
+    /// "DATED" line above the parties section.
     pub effective_date_display: String,
     pub end_date_display: Option<String>,
     pub term_text: String,
-    /// Compact term phrase for header strips ("1 year", "until 1 Jul 2026").
+    /// Compact term phrase for the key-terms strip ("2 months", "until 1 Jul 2026").
     pub term_short: String,
     pub governing_law: String,
     pub jurisdiction_phrase: String,
@@ -38,16 +49,18 @@ pub struct ContractRenderData {
     pub status: String,
     pub draft_watermark: bool,
     pub fee_text: Option<String>,
-    /// Compact fee phrase for header strips ("S$8,400 fixed").
+    /// Compact fee phrase for the key-terms strip ("£1,500 fixed").
     pub fee_short: Option<String>,
     pub our_party: PartyData,
     pub their_party: PartyData,
+    /// Parties as numbered prose lines, the traditional UK contract format:
+    ///   "**BORIS DJORDJEVIC** of 199 Gloucester Terrace, London W2 6LD,
+    ///    United Kingdom (the \"Consultant\")"
+    /// Templates render them as a numbered list "(1) … ; and  (2) ….".
+    pub parties_prose: Vec<String>,
     pub clauses: Vec<ClauseRenderData>,
     pub signature: SignatureBlock,
     pub logo: Option<String>,
-    /// Free-form notes — kept on row, not rendered on the contract body.
-    /// Templates may show it as an internal "Notes for our records" footer if
-    /// they want; default templates do not.
     pub internal_notes: Option<String>,
 }
 
@@ -283,6 +296,62 @@ fn deliverables_block(terms: &serde_json::Value) -> String {
     }
 }
 
+/// Generate the traditional "(N) <NAME> of <address>, <qualifier> (the "Role")"
+/// prose used in UK/Commonwealth contracts. Companies get an incorporation
+/// qualifier ("a company incorporated in England and Wales, Co. No. 12345678");
+/// individuals just have name + address. The role label is the contract-side
+/// label (Consultant / Client / Provider / Party A / etc).
+fn party_intro_prose(p: &PartyData) -> String {
+    let legal = p.legal_name.clone().unwrap_or_else(|| p.display_name.clone());
+    let name_upper = legal.to_uppercase();
+    let addr = p.address.join(", ");
+    let looks_like_company = looks_like_company_name(&legal);
+    let mut qualifier = String::new();
+    if let Some(j) = &p.jurisdiction {
+        if looks_like_company {
+            qualifier.push_str(&format!(", a company incorporated in {j}"));
+            if let Some(co) = &p.company_no {
+                qualifier.push_str(&format!(" (Co. No. {co})"));
+            } else {
+                qualifier.push(')');
+                // remove the trailing ')' we just over-added; only add if
+                // a company-no is missing AND we want no closing paren.
+                qualifier.pop();
+            }
+        }
+    } else if let Some(co) = &p.company_no {
+        // Jurisdiction missing but company number known.
+        qualifier.push_str(&format!(", company no. {co}"));
+    }
+    // Use Typst's single-asterisk bold syntax so the name reads as bold.
+    format!("*{name_upper}* of {addr}{qualifier} (the \"{role}\")", role = p.role_label)
+}
+
+fn looks_like_company_name(s: &str) -> bool {
+    let lower = s.to_lowercase();
+    [
+        " ltd", " limited", " inc", " incorporated", " corp", " corporation",
+        " pte", " llc", " llp", " plc", " gmbh", " ag", " sa", " s.a.",
+        " sas", " bv", " nv", " pty",
+    ]
+    .iter()
+    .any(|s| lower.contains(s))
+}
+
+/// Mirror of cmd_new's default_title — used to decide whether the user
+/// provided a meaningful project title (subtitle) or just accepted the
+/// auto-generated "Kind — A × B" string (no subtitle).
+fn auto_default_title(kind: &str, issuer_name: &str, client_name: &str) -> String {
+    match kind {
+        "nda" => format!("NDA — {issuer_name} & {client_name}"),
+        "consulting" => format!("Consulting Agreement — {issuer_name} × {client_name}"),
+        "msa" => format!("Master Services Agreement — {issuer_name} & {client_name}"),
+        "sow" => format!("Statement of Work — {issuer_name} × {client_name}"),
+        "service" => format!("Service Agreement — {issuer_name} for {client_name}"),
+        _ => format!("Agreement — {issuer_name} & {client_name}"),
+    }
+}
+
 fn party_display(issuer: &Issuer, role_label: &str) -> PartyData {
     PartyData {
         role_label: role_label.to_string(),
@@ -466,11 +535,22 @@ pub fn build_render_data(
         !is_executed
     };
 
+    let our_party = party_display(issuer, &our_role);
+    let their_party = client_display(client, &their_role);
+    let parties_prose = vec![party_intro_prose(&our_party), party_intro_prose(&their_party)];
+    // Compute subtitle: suppress when contract.title is just the auto-default.
+    let auto = auto_default_title(&contract.kind, &issuer.name, &client.name);
+    let subtitle = if contract.title.trim() == auto.trim() {
+        None
+    } else {
+        Some(contract.title.clone())
+    };
+
     Ok(ContractRenderData {
         kind: contract.kind.clone(),
         kind_label: kind_label(&contract.kind, &terms),
         number: contract.number.clone(),
-        title: contract.title.clone(),
+        subtitle,
         effective_date_display: fmt_date(&contract.effective_date),
         end_date_display: contract.end_date.as_deref().map(fmt_date),
         term_text: term_text(contract),
@@ -482,8 +562,9 @@ pub fn build_render_data(
         draft_watermark: draft,
         fee_text: fee_text(contract),
         fee_short: fee_short(contract),
-        our_party: party_display(issuer, &our_role),
-        their_party: client_display(client, &their_role),
+        our_party,
+        their_party,
+        parties_prose,
         clauses: render_clauses,
         signature,
         logo: None, // populated by render_to_pdf if issuer has a logo
