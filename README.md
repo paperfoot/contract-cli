@@ -58,7 +58,7 @@ client you already invoice, in one binary.
 ### Homebrew (macOS / Linux)
 
 ```
-brew tap 199-biotechnologies/tap
+brew tap paperfoot/tap
 brew install contract
 ```
 
