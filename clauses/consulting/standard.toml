@@ -1,0 +1,99 @@
+[pack]
+slug = "standard"
+name = "Standard Consulting Agreement (plain English)"
+version = "1.0"
+kind = "consulting"
+default_clauses = [
+  "background",
+  "services",
+  "deliverables",
+  "fees_and_expenses",
+  "timing",
+  "relationship",
+  "ip_ownership",
+  "confidentiality",
+  "warranties",
+  "liability",
+  "termination",
+  "general",
+]
+
+[clauses.background]
+heading = "Background"
+body = """
+{{our_legal_name}} (the “Consultant”) provides advisory and delivery services. {{their_legal_name}} (the “Client”) wishes to engage the Consultant in connection with {{purpose}}. This agreement sets out the terms.
+"""
+
+[clauses.services]
+heading = "Services"
+body = """
+The Consultant will provide the services described under “Deliverables” below, together with such ancillary work as the parties reasonably agree from time to time (the “Services”). The Consultant will perform the Services with reasonable skill and care, and will keep the Client informed of progress.
+"""
+
+[clauses.deliverables]
+heading = "Deliverables"
+body = """
+The Consultant will deliver the following:
+
+{{deliverables_block}}
+
+If the Client wants something materially outside this list, the parties will agree the change — and any impact on fees or timing — in writing (email is fine) before the additional work begins.
+"""
+
+[clauses.fees_and_expenses]
+heading = "Fees and Expenses"
+body = """
+The Client will pay the Consultant {{fee_text}}.
+
+Invoices are payable within 14 days of receipt. Late amounts may accrue interest at 1% per month from the due date. Reasonable out-of-pocket expenses (travel, materials, third-party software) are reimbursable when pre-approved in writing.
+"""
+
+[clauses.timing]
+heading = "Timing"
+body = """
+The engagement begins on {{effective_date}} and runs {{term_text}}. The parties will work in good faith to meet any milestones agreed in writing. Delays caused primarily by the Client (late feedback, missing inputs, scope changes) extend the relevant dates by an equivalent amount and do not change the fee.
+"""
+
+[clauses.relationship]
+heading = "Independent Contractor"
+body = """
+The Consultant is an independent contractor, not an employee, agent, partner, or joint-venture partner of the Client. Nothing in this agreement creates such a relationship. The Consultant is responsible for its own taxes, social contributions, and insurance, and may engage subcontractors provided the Consultant remains responsible for their work.
+"""
+
+[clauses.ip_ownership]
+heading = "Intellectual Property"
+body = """
+{{ip_assignment_text}}
+
+The Consultant keeps ownership of any tools, libraries, methods, frameworks, or general know-how it had before, or developed independently of, this engagement (the Consultant’s “Background IP”). To the extent any Background IP is incorporated into a Deliverable, the Consultant grants the Client a non-exclusive, perpetual, royalty-free licence to use it as part of that Deliverable.
+"""
+
+[clauses.confidentiality]
+heading = "Confidentiality"
+body = """
+Each party will treat the other’s non-public information (including business plans, customer data, financials, and technical materials) with reasonable care, use it only for the engagement, and share it inside its organisation only on a need-to-know basis. This obligation survives for {{confidentiality_years}} years after the engagement ends. It does not apply to information that becomes public other than through that party’s fault, was already known on a non-confidential basis, or is independently developed.
+"""
+
+[clauses.warranties]
+heading = "Warranties"
+body = """
+The Consultant warrants that it will perform the Services with reasonable skill and care, in line with industry standards, and that to the best of its knowledge the Deliverables will not knowingly infringe any third-party intellectual property. The Consultant does not warrant any specific business outcome. The Client warrants that it has the authority to enter into this agreement and to provide any materials it shares with the Consultant.
+"""
+
+[clauses.liability]
+heading = "Limitation of Liability"
+body = """
+Neither party is liable to the other for indirect, consequential, or loss-of-profits damages. Each party’s total liability under this agreement is capped at the fees paid or payable to the Consultant under this agreement in the twelve months before the event giving rise to the claim. Nothing in this clause limits liability that cannot be limited under applicable law, including liability for fraud or willful misconduct.
+"""
+
+[clauses.termination]
+heading = "Termination"
+body = """
+Either party may terminate this agreement for convenience by giving the other at least {{termination_notice_days}} days’ written notice. Either party may terminate immediately for material breach that is not cured within 15 days of written notice describing it, or if the other party becomes insolvent. On termination, the Client will pay the Consultant for Services performed up to the termination date and for non-cancellable expenses. Clauses that by their nature should survive (confidentiality, IP, liability, governing law) survive termination.
+"""
+
+[clauses.general]
+heading = "General"
+body = """
+This agreement is the whole agreement on its subject and replaces prior discussions. Changes must be in writing signed by both parties (email exchange is fine where the parties clearly confirm the change). If any part is unenforceable, the rest stays in force. Neither party may assign without the other’s consent, except to an affiliate or successor in connection with a sale of its business. Notices may be given by email to the address on the signature page. This agreement is governed by the laws of {{governing_law}} and the parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+"""

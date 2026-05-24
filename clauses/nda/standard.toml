@@ -1,0 +1,103 @@
+[pack]
+slug = "standard"
+name = "Standard NDA (plain English)"
+version = "1.0"
+kind = "nda"
+default_clauses = [
+  "purpose",
+  "definitions",
+  "obligations",
+  "exclusions",
+  "permitted_disclosures",
+  "term",
+  "return_or_destroy",
+  "no_license",
+  "no_obligation",
+  "remedies",
+  "governing_law",
+  "general",
+]
+
+[clauses.purpose]
+heading = "Purpose"
+body = """
+{{our_legal_name}} (“{{our_name}}”) and {{their_legal_name}} (“{{their_name}}”) wish to explore {{purpose}}. To have a useful conversation, the parties may need to share information that is not public. This agreement sets out how that information must be handled.
+"""
+
+[clauses.definitions]
+heading = "Confidential Information"
+body = """
+“Confidential Information” means any information — technical, commercial, financial, or otherwise — that one party makes available to the other in connection with the Purpose, whether shared in writing, verbally, or by any other means, and whether or not marked “confidential”. It includes information about products, research, methods, customers, finances, plans, and personnel.
+"""
+
+[clauses.obligations]
+heading = "How the Information Must Be Treated"
+body = """
+The receiving party will:
+
+- use the Confidential Information only for the Purpose;
+- protect it with at least the same care it uses for its own confidential information of similar importance, and never less than reasonable care;
+- limit access to the people who actually need to know it for the Purpose; and
+- not copy, reproduce, or distribute it except as necessary for the Purpose.
+"""
+
+[clauses.exclusions]
+heading = "What Is Not Covered"
+body = """
+These obligations do not apply to information that:
+
+1. is, or becomes, publicly available through no fault of the receiving party;
+2. the receiving party already had on a non-confidential basis before it was shared;
+3. is independently developed by the receiving party without using the Confidential Information; or
+4. is rightfully received from a third party with no duty of confidence.
+
+If a court, regulator, or law forces disclosure, the receiving party may comply, but will give the disclosing party prompt notice where it is lawful to do so, and disclose only what is required.
+"""
+
+[clauses.permitted_disclosures]
+heading = "Sharing With Advisors"
+body = """
+The receiving party may share the Confidential Information with its directors, employees, and professional advisors (such as lawyers and accountants) on a need-to-know basis, provided those people are bound by obligations of confidentiality at least as protective as this agreement. The receiving party remains responsible for any breach by anyone it shares the information with.
+"""
+
+[clauses.term]
+heading = "Term and Survival"
+body = """
+This agreement takes effect on {{effective_date}} and continues for {{term_text}}. The confidentiality obligations in this agreement survive for {{confidentiality_years}} years after that, after which the information may be freely used unless it qualifies for trade-secret protection under applicable law, in which case the obligations survive for as long as the information remains a trade secret.
+"""
+
+[clauses.return_or_destroy]
+heading = "Return or Destruction"
+body = """
+On written request from the disclosing party, or when this agreement ends, the receiving party will promptly return or destroy all Confidential Information in its possession (including copies), other than (i) one archive copy retained by its legal or compliance function and (ii) routine electronic backups that cannot be reasonably deleted. Anything retained remains subject to this agreement.
+"""
+
+[clauses.no_license]
+heading = "No Licence, No Warranty"
+body = """
+Nothing in this agreement gives either party any rights — by licence, ownership, or otherwise — in the other party’s Confidential Information or intellectual property. Confidential Information is provided “as is”. Neither party makes any warranty as to its accuracy or completeness.
+"""
+
+[clauses.no_obligation]
+heading = "No Commitment"
+body = """
+Neither party is obliged by this agreement to enter into any further agreement, to share any specific information, or to pursue the Purpose. Either party may end its participation in discussions at any time.
+"""
+
+[clauses.remedies]
+heading = "Remedies"
+body = """
+Both parties acknowledge that a breach of this agreement may cause irreparable harm for which money damages would not be adequate. The non-breaching party may seek injunctive or equitable relief, in addition to any other remedies available at law.
+"""
+
+[clauses.governing_law]
+heading = "Governing Law"
+body = """
+This agreement is governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}} for any dispute arising out of or in connection with it.
+"""
+
+[clauses.general]
+heading = "General"
+body = """
+This agreement is the whole agreement between the parties on its subject. It can only be changed in writing signed by both parties. If any part is found unenforceable, the rest stays in force. Neither party may assign its rights without the other’s written consent, except to an affiliate or successor in connection with a sale of its business. Notices must be in writing and sent to the email or address on the signature page.
+"""
