@@ -104,7 +104,7 @@ Neither party is obliged by this agreement to proceed with the Purpose or any tr
 [clauses.term]
 heading = "Term and Survival"
 body = """
-This agreement takes effect on {{effective_date}} and continues for {{term_text}}. The confidentiality obligations survive for {{confidentiality_years}} years after this agreement ends, and indefinitely for any information that qualifies as a trade secret under applicable law. The non-circumvention obligations survive in accordance with their terms.
+This agreement takes effect on {{effective_date}} and continues {{term_text}}. The confidentiality obligations survive for {{confidentiality_years}} years after this agreement ends, and indefinitely for any information that qualifies as a trade secret under applicable law. The non-circumvention obligations survive in accordance with their terms.
 """
 
 [clauses.entire_agreement]

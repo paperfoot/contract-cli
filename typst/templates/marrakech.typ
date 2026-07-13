@@ -119,8 +119,10 @@
   ])
 }
 
-// ─── SIGNATURE ──
+// ─── SIGNATURE (closing rule travels with the block) ──
 #v(mm-sp.l)
-#hairline(theme, weight: 0.4pt)
-#v(mm-sp.s)
-#signature-block(data.signature, theme)
+#block(breakable: false, [
+  #hairline(theme, weight: 0.4pt)
+  #v(mm-sp.s)
+  #signature-block(data.signature, theme)
+])

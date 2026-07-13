@@ -70,7 +70,7 @@ The receiving party may share the Confidential Information with its directors, e
 [clauses.term]
 heading = "Term and Survival"
 body = """
-This agreement takes effect on {{effective_date}} and continues for {{term_text}}. The confidentiality obligations in this agreement survive for {{confidentiality_years}} years after that, after which the information may be freely used unless it qualifies for trade-secret protection under applicable law, in which case the obligations survive for as long as the information remains a trade secret.
+This agreement takes effect on {{effective_date}} and continues {{term_text}}. The confidentiality obligations in this agreement survive for {{confidentiality_years}} years after that, after which the information may be freely used unless it qualifies for trade-secret protection under applicable law, in which case the obligations survive for as long as the information remains a trade secret.
 """
 
 [clauses.return_or_destroy]

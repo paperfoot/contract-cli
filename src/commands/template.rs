@@ -166,6 +166,20 @@ fn sample_contract(kind: &str) -> Contract {
             "purpose": "a potential collaboration on a longevity research project",
             "confidentiality_years": 3,
         }),
+        "ncnda" => serde_json::json!({
+            "mutuality": "mutual",
+            "disclosing_side": "both",
+            "purpose": "the introduction of prospective lenders and buyers in connection with a proposed asset financing",
+            "confidentiality_years": 3,
+            "non_circumvention_months": "24",
+            "commission_text": "a commission as separately agreed in writing between the parties",
+        }),
+        "loan" => serde_json::json!({
+            "purpose": "a personal loan between the parties",
+            "principal_text": "S$10,000 (ten thousand Singapore dollars)",
+            "interest_text": "interest-free",
+            "repayment_date": "1 December 2026",
+        }),
         "consulting" => serde_json::json!({
             "purpose": "the design and delivery of a customer-facing dashboard for the Client's flagship product",
             "deliverables": [
@@ -209,10 +223,12 @@ fn sample_contract(kind: &str) -> Contract {
     };
     let title = match kind {
         "nda" => "Mutual NDA — Acme × Meridian".into(),
+        "ncnda" => "NCNDA — Acme × Meridian".into(),
         "consulting" => "Customer Dashboard — Consulting Engagement".into(),
         "msa" => "Master Services Agreement — Acme × Meridian".into(),
         "sow" => "SOW #1 — Customer Dashboard Implementation".into(),
         "service" => "Managed Hosting & Performance Reviews".into(),
+        "loan" => "Loan Agreement — Acme × Meridian".into(),
         _ => format!("Sample {kind} agreement"),
     };
     Contract {
@@ -252,12 +268,5 @@ fn sample_contract(kind: &str) -> Contract {
 }
 
 fn prefix_for(kind: &str) -> &'static str {
-    match kind {
-        "consulting" => "CTR",
-        "nda" => "NDA",
-        "msa" => "MSA",
-        "sow" => "SOW",
-        "service" => "SVC",
-        _ => "DOC",
-    }
+    crate::kinds::prefix_for(kind)
 }
