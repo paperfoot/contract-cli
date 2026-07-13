@@ -1,7 +1,7 @@
 [pack]
 slug = "standard"
 name = "Standard NDA (plain English)"
-version = "1.0"
+version = "1.1"
 kind = "nda"
 default_clauses = [
   "purpose",
@@ -14,8 +14,15 @@ default_clauses = [
   "no_license",
   "no_obligation",
   "remedies",
+  "entire_agreement",
+  "variation",
+  "severance",
+  "assignment",
+  "notices",
+  "counterparts",
+  "third_party_rights",
+  "no_partnership",
   "governing_law",
-  "general",
 ]
 
 [clauses.purpose]
@@ -87,7 +94,7 @@ Neither party is obliged by this agreement to enter into any further agreement, 
 [clauses.remedies]
 heading = "Remedies"
 body = """
-Both parties acknowledge that a breach of this agreement may cause irreparable harm for which money damages would not be adequate. The non-breaching party may seek injunctive or equitable relief, in addition to any other remedies available at law.
+Both parties acknowledge that a breach of this agreement may cause irreparable harm for which money damages would not be adequate. The non-breaching party may seek injunctive or other equitable relief in any court of competent jurisdiction — notwithstanding the exclusive jurisdiction clause in this agreement — in addition to any other remedies available at law.
 """
 
 [clauses.governing_law]
@@ -96,8 +103,64 @@ body = """
 This agreement is governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}} for any dispute arising out of or in connection with it.
 """
 
-[clauses.general]
-heading = "General"
+[clauses.entire_agreement]
+heading = "Entire Agreement"
 body = """
-This agreement is the whole agreement between the parties on its subject. It can only be changed in writing signed by both parties. If any part is found unenforceable, the rest stays in force. Neither party may assign its rights without the other’s written consent, except to an affiliate or successor in connection with a sale of its business. Notices must be in writing and sent to the email or address on the signature page.
+This agreement is the whole agreement between the parties on its subject and replaces prior discussions. Neither party has relied on any statement not set out in it.
+"""
+
+[clauses.variation]
+heading = "Variation and Waiver"
+body = """
+Changes to this agreement must be in writing and signed by both parties. A failure or delay in exercising a right is not a waiver of it.
+"""
+
+[clauses.severance]
+heading = "Severance"
+body = """
+If any part of this agreement is found invalid or unenforceable, that part is deemed deleted and the rest stays in force.
+"""
+
+[clauses.assignment]
+heading = "Assignment"
+body = """
+Neither party may assign its rights or obligations under this agreement without the other’s written consent, except to an affiliate or successor in connection with a sale of its business.
+"""
+
+[clauses.notices]
+heading = "Notices"
+body = """
+Notices under this agreement must be in writing and sent to the email or address on the signature page, or as later notified in writing.
+"""
+
+[clauses.counterparts]
+heading = "Counterparts and Electronic Signatures"
+body = """
+This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — are valid and binding.
+"""
+
+[clauses.third_party_rights]
+heading = "Third-Party Rights"
+body = """
+A person who is not a party to this agreement has no right to enforce any of its terms, whether under the Contracts (Rights of Third Parties) Act 1999 or otherwise.
+"""
+
+[clauses.no_partnership]
+heading = "No Partnership"
+body = """
+Nothing in this agreement creates a partnership, joint venture, agency, or employment relationship between the parties.
+"""
+
+# Optional clauses — not in the default set; add with --include.
+
+[clauses.non_circumvention]
+heading = "Non-Circumvention"
+body = """
+Neither party will use the other’s Confidential Information, or any introduction made under this agreement, to circumvent or bypass the other party in relation to any contact, counterparty, or opportunity first made known to it by the other party — including by dealing with that contact directly so as to exclude the other party from a transaction or from remuneration separately agreed with it. This obligation applies during the term of this agreement and for {{non_circumvention_months}} months after it ends; if no period is stated, it applies for as long as the confidentiality obligations survive.
+"""
+
+[clauses.non_solicit]
+heading = "Non-Solicitation"
+body = """
+While this agreement is in force and for 12 months after it ends, neither party will actively solicit for employment or engagement any employee or contractor of the other with whom it had material contact in connection with the Purpose. General recruitment advertising not targeted at those people — and hiring anyone who responds to it — is not a breach.
 """
