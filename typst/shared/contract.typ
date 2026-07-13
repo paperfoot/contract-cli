@@ -231,15 +231,23 @@
 
 // ─── Signature block ───────────────────────────────────────────────────────
 // Two columns. Each side: small tracked "Signed for and on behalf of" label,
-// party legal name, signature line, name/title/date rows.
+// party legal name, signature rule, then NAME/TITLE/DATE rows. A known value
+// prints as text; a blank renders as a writable rule (wet-ink friendly) —
+// never a bare label with nothing to write on.
 
 #let _sig-row(theme, label, value) = {
   let mute = th(theme, "mute", rgb("#666666"))
   grid(
     columns: (12mm, 1fr),
     column-gutter: 2mm,
+    align: (left + bottom, left + bottom),
     text(size: 7.5pt, fill: mute, tracking: 0.8pt)[#upper(label)],
-    text(size: 9.5pt)[#if value != none { value } else { "" }],
+    if value != none and value != "" {
+      text(size: 9.5pt)[#value]
+    } else {
+      // Writable rule: a little air above so a pen has room.
+      stack(spacing: 0pt, v(4mm), line(length: 100%, stroke: 0.35pt + th(theme, "ink", black)))
+    },
   )
 }
 
@@ -247,9 +255,11 @@
   lbl(theme, "Signed for and on behalf of")
   v(sp.xs)
   text(font: th(theme, "display-font", ("Helvetica Neue", "Helvetica", "Arial")), size: 10.5pt, weight: 600)[#party-name]
-  v(18mm)
+  v(16mm)
   line(length: 100%, stroke: 0.4pt + th(theme, "ink", black))
-  v(sp.xs)
+  v(sp.xxs)
+  text(size: 6.5pt, fill: th(theme, "mute", rgb("#666666")), tracking: 0.8pt)[SIGNATURE]
+  v(sp.s)
   _sig-row(theme, "Name", signer-name)
   v(sp.xxs)
   _sig-row(theme, "Title", signer-title)

@@ -5,9 +5,10 @@
 //! paper: white
 // ═══════════════════════════════════════════════════════════════════════════
 // helvetica-nera — Sober corporate/legal instrument.
-// Left-aligned engagement name leads, kind acts as subtitle in mute.
-// Real-contract conventions: no eyebrow, no reference code in body,
-// "DATED" line + numbered (1)/(2) parties prose, full-black clauses.
+// Left-aligned kind-label IS the hero title; the project name (if any)
+// acts as subtitle in mute. Real-contract conventions: no eyebrow, no
+// reference code in body, "DATED" line + numbered (1)/(2) parties prose,
+// full-black clauses.
 // ═══════════════════════════════════════════════════════════════════════════
 
 #import "../shared/contract.typ": data, lbl, hairline, fit-size, parties-prose-block, signature-block, page-shell, render-markdown, section-label, sp, mm-sp
@@ -35,7 +36,7 @@
   lang: "en",
   number-type: "lining",
   number-width: "tabular",
-  hyphenate: false,
+  hyphenate: true,
 )
 #set par(leading: 5.6pt, spacing: 5.6pt, justify: true)
 
@@ -73,8 +74,11 @@
 #if data.fee-short != none {
   cells = cells + (("Fee", data.fee-short),)
 }
+// Columns adapt to cell count: each cell always takes one third of the
+// measure, so a 2-cell strip keeps the 3-cell rhythm instead of spreading
+// the second cell out to the centreline.
 #grid(
-  columns: cells.map(_ => 1fr),
+  columns: cells.map(_ => (100% - 16mm) / 3),
   column-gutter: 8mm,
   align: (left + horizon, left + horizon, left + horizon),
   ..cells.map(((lbl-t, val)) => [
