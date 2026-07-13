@@ -1,6 +1,6 @@
 # contract-cli
 
-> Beautiful contracts from the CLI — NDA, consulting, MSA, SOW, service.
+> Beautiful contracts from the CLI — NDA, NCNDA, consulting, MSA, SOW, service, loan.
 > Plain English, 1–3 pages, agent-friendly.
 
 A stateful, single-binary CLI for drafting and rendering business contracts.
@@ -14,44 +14,51 @@ client you already invoice, in one binary.
 
 ## Features
 
-- **Five contract kinds, plain English.** Consulting, NDA (mutual or
-  unilateral), MSA, SOW, service agreement. Embedded clause packs use
+- **Seven contract kinds, plain English.** NDA (mutual or unilateral),
+  NCNDA (non-circumvention — protects introductions from being cut out),
+  consulting, MSA, SOW, service, loan. Embedded clause packs use
   real-contract conventions: kind as title, project as subtitle, "Dated"
-  line, numbered `(1)/(2)` parties prose, "AGREED TERMS" section.
-- **Composable clause packs.** Each kind ships with a `standard` pack.
-  Include or exclude clauses at creation time (`--include non_solicit
-  --exclude warranties`), or override the body of any clause from a
-  Markdown file (`contract clauses edit <num> termination --from-file
-  ./my-version.md`). Reset to pack default with `contract clauses reset
-  <num>`. Add custom clauses entirely (`contract clauses add <num>
-  custom_audit --body "…"`).
-- **Three Typst templates.** `helvetica-nera` (Swiss monochrome, default),
-  `vienna-legal` (Bauhaus / terracotta), `editorial` (centred serif —
-  reads like a deed). Each template owns the masthead aesthetic;
-  shared/contract.typ owns the structure (parties prose, key terms,
-  numbered clauses, signature block).
-- **Shared with invoice-cli.** Issuers + clients live in one accounting
-  SQLite at `~/Library/Application Support/com.paperfoot.accounting/`.
-  Anything you `invoice clients add ...` is immediately usable by
-  `contract new ... --client …`, and vice versa. `contract doctor`
-  surfaces the shared list and warns when a client lacks the legal
-  fields needed for a contract party block.
-- **Signature lifecycle.** `draft → sent → signed → active / expired /
-  terminated`. Drafts render with a faint DRAFT watermark; `--final`
-  produces a clean signing copy. `contract sign <num> --side us|them
-  --name "..." --title "..."` records each signature; status
-  auto-promotes to `signed` when both sides have signed. Sent/signed
-  contracts are immutable — clauses and metadata lock.
-- **Signature block never splits.** If the execution block doesn't fit
-  on the current page, Typst pushes the whole block to the next page —
-  never half on one page, half on another.
-- **Agent-friendly.** Every command emits a `{version, status, data |
-  error}` envelope when piped or `--json`. `contract agent-info` returns
-  a full capability + exit-code manifest with a `shared_state` block
-  telling the agent which entities are shared with invoice-cli and to
-  list existing before creating duplicates. `contract skill install`
-  drops a ready-to-use skill into `~/.claude/skills/contract-cli/`,
-  `~/.codex/skills/contract-cli/`, `~/.gemini/skills/contract-cli/`.
+  line, numbered `(1)/(2)` parties prose, "AGREED TERMS" section, discrete
+  boilerplate (notices, counterparts & e-signatures, third-party rights,
+  no-partnership, entire agreement).
+- **Describe what you need — get the right kind.** `contract kinds find
+  "stop them going around me to steal my contact"` → `ncnda`. Deterministic
+  local scoring over per-kind trigger tags; ranked candidates, you pick.
+  No LLM, no network, no guessing.
+- **Seven Typst templates, described and findable.** `contract template
+  list` shows each template's description, mood, tags, and fonts;
+  `contract template find "magazine masthead"` ranks them. The lineup:
+  - `helvetica-nera` — sober Swiss corporate instrument (default)
+  - `vienna-legal` — warm boutique, cream + terracotta
+  - `editorial` — formal serif, reads like a deed
+  - `gazette` — magazine masthead: Fraunces black over a broadsheet
+    dateline, literary Newsreader body
+  - `marrakech` — the Iowan / cream / terracotta data-room voice
+  - `basel` — Swiss brutalist grid with a marginalia rail
+  - `chancery` — engraved deed: letterspaced Garamond capitals, true
+    small caps, witness-ready execution
+- **Premium fonts ship in the binary.** OFL faces (Fraunces, Newsreader,
+  Literata, Libre Franklin, Archivo, EB Garamond, Cormorant Garamond)
+  are embedded and passed to Typst via `--font-path`, so renders are
+  identical on any machine. System faces (Iowan Old Style, Helvetica
+  Neue) sit first in the stacks with embedded fallbacks.
+- **Composable clause packs.** Include or exclude clauses at creation
+  time (`--include non_circumvention --exclude warranties`), override any
+  clause body from Markdown, add fully custom clauses. Arbitrary terms
+  flow into pack `{{vars}}` via `--term key=value` — e.g.
+  `--term principal_text='£10,000 (ten thousand pounds sterling)'`.
+- **Signature lifecycle with teeth.** `draft → sent → signed → active →
+  expired / terminated`. Executed contracts only move forward; `sign`
+  refuses to overwrite a recorded signature without `--force`; drafts
+  render with a DRAFT watermark (`--final` for the signing copy);
+  sent/signed contracts lock clauses and metadata.
+- **Agent-native, conformance-tested.** Full
+  [agent-cli-framework](https://github.com/paperfoot/agent-cli-framework)
+  compliance, verified in CI by the framework's conformance script:
+  canonical `agent-info` manifest with per-command arg/option schemas,
+  JSON envelope on every code path (piped `--help` included), semantic
+  exit codes 0–4, tested error suggestions, distribution-aware `update`,
+  `skill install|status` for Claude / Codex / Gemini.
 
 ## Install
 
@@ -68,54 +75,40 @@ brew install contract
 cargo install contract-cli
 ```
 
-### From source
-
-```
-git clone https://github.com/paperfoot/contract-cli
-cd contract-cli
-cargo install --path .
-```
-
 All install paths produce a single `contract` binary. Typst is the only
-runtime dependency (`brew install typst` on macOS).
+runtime dependency (`brew install typst`).
 
 ## Quick start
 
 ```sh
-# Reuse the issuers and clients you already have in invoice-cli, or add new
 contract issuer list                                # shared with invoice-cli
 contract clients list
 
-# Add legal fields to an existing client (V7 added these, invoice-cli
-# doesn't need them but contracts do)
-contract clients edit reshape-clinic \
-    --legal-name "Reshape Clinic Ltd" \
-    --company-no "12345678" \
-    --jurisdiction "England and Wales"
+# Don't remember the kind or template names? Describe them:
+contract kinds find "they can't bypass me and deal direct"
+contract template find "warm cream editorial"
 
 # Quick mutual NDA — 3-year term
 contract new --kind nda --as boris --client reshape-clinic \
     --purpose "exploring a joint product line" --term-years 3
 
-# Consulting agreement, fixed fee, plain-English clause pack
-contract new --kind consulting --as boris --client alberto-pertusa \
-    --title "Superlearning Ltd — Company Formation Engagement" \
-    --purpose "guide and execute the registration of Superlearning Ltd at Companies House and stand up the company's initial governance, share, and tax setup" \
-    --fee fixed:1500:GBP --fee-schedule on-completion \
-    --term-months 2 \
-    --deliverable "Form IN01 filing at Companies House" \
-    --deliverable "Bespoke Articles of Association" \
-    --deliverable "Initial share structure + statutory registers" \
-    --deliverable "HMRC Corporation Tax registration" \
-    --ip-assignment client \
-    --governing-law "England and Wales"
+# Non-circumvention agreement protecting an introduction
+contract new --kind ncnda --as boris --client partner \
+    --purpose "introduction to prospective lenders in connection with the transaction" \
+    --term-years 2 --governing-law "England and Wales"
+
+# Interest-free loan, fixed repayment date
+contract new --kind loan --as boris --client friend \
+    --term principal_text='£10,000 (ten thousand pounds sterling)' \
+    --term interest_text='interest-free' \
+    --term repayment_date=2026-12-01
 
 # Render — DRAFT watermark by default; --final removes it
-contract render CTR-boris-2026-0001 --template editorial --final --open
+contract render NDA-boris-2026-0001 --template marrakech --final --open
 
-# Record signatures — status auto-bumps to "signed" when both sides done
-contract sign CTR-boris-2026-0001 --side us   --name "B. Djordjevic" --title "Director"
-contract sign CTR-boris-2026-0001 --side them --name "A. Pertusa"
+# Record signatures — status auto-bumps to "signed" when both sides sign
+contract sign NDA-boris-2026-0001 --side us   --name "B. Djordjevic" --title "Director"
+contract sign NDA-boris-2026-0001 --side them --name "A. Pertusa"
 ```
 
 ## Core commands
@@ -123,99 +116,77 @@ contract sign CTR-boris-2026-0001 --side them --name "A. Pertusa"
 | Command | Purpose |
 |---|---|
 | `issuer add\|edit\|list\|show\|delete` | Manage issuers (your side; shared with invoice-cli) |
-| `clients add\|edit\|list\|show\|delete` | Manage counterparties (shared with invoice-cli; V7 adds `legal_name`, `company_no`, `legal_jurisdiction`) |
-| `new --kind <k> --as <i> --client <c> [options...]` | Create a new contract |
-| `list [--kind --status --as]` | List contracts |
-| `show <number>` | Show metadata + clause list |
-| `contracts edit <number>` | Edit draft metadata (sent/signed are immutable) |
-| `render <number> [--template] [--out] [--open] [--final \| --draft]` | Generate PDF. DRAFT watermark by default; `--final` for clean copy |
-| `mark <number> draft\|sent\|signed\|active\|expired\|terminated` | Update status — auto-stamps timestamps |
-| `sign <number> --side us\|them --name "..." [--title] [--date]` | Record one party's signature |
-| `contracts clauses list\|add\|edit\|remove\|move\|reset <number>` | Compose the clause set |
-| `contracts duplicate <number>` | Clone a contract as a fresh draft |
-| `contracts delete <number> [--force]` | Delete (`--force` for non-draft) |
-| `pack list \| show <kind>` | Browse the clause packs |
-| `template list \| preview <name> [--kind nda\|consulting]` | Inspect templates |
+| `clients add\|edit\|list\|show\|delete` | Manage counterparties (shared with invoice-cli) |
+| `new --kind <k> --as <i> --client <c> [options…]` | Create a contract (`--term key=value` for kind-specific terms) |
+| `list \| show \| edit \| duplicate \| delete` | Work the contract book (all top-level) |
+| `render <number> [--template] [--out] [--open] [--final \| --draft]` | Generate the PDF |
+| `mark <number> <status>` | Lifecycle moves (forward-only once executed) |
+| `sign <number> --side us\|them --name "…"` | Record a signature (`--force` to overwrite) |
+| `contracts clauses list\|add\|edit\|remove\|move\|reset` | Compose the clause set |
+| `pack list \| show <kind>` | Browse clause packs |
+| `template list \| find "<look>" \| preview <name>` | Discover and preview templates |
+| `kinds list \| find "<need>"` | Discover contract kinds |
 | `doctor` | Verify typst + DB + packs + shared issuers/clients |
-| `agent-info` | Full JSON capability manifest |
-| `skill install` | Install embedded Claude / Codex / Gemini skill |
-| `update [--check]` | Self-update via brew or cargo |
+| `agent-info` | Canonical JSON capability manifest |
+| `skill install \| status` | Manage the embedded agent skill |
+| `update [--check]` | Distribution-aware update (brew / cargo) |
 
-Run `contract --help` for the full reference.
+Run `contract --help` for Tips and Examples.
 
 ## Template resolution
-
-At render time the chain is:
 
 ```
 --template flag  >  contract.default_template  >  "helvetica-nera"
 ```
 
+Templates are validated when set, not just at render. Every template
+carries a `//!` metadata header (description, mood, tags, fonts, paper) —
+drop your own `.typ` in the extracted templates dir with the same header
+and it participates in `template list` / `template find` immediately.
+
 ## Composing clauses
 
-Each contract is built from a clause pack. By default it includes the
-pack's `default_clauses` in order. Customise per contract:
-
 ```
-contract pack show consulting
-contract contracts clauses list CTR-boris-2026-0001
-contract contracts clauses add CTR-boris-2026-0001 non_solicit --from-file ./extra.md --position 8
-contract contracts clauses edit CTR-boris-2026-0001 termination --from-file ./our-termination.md
-contract contracts clauses remove CTR-boris-2026-0001 warranties
-contract contracts clauses move CTR-boris-2026-0001 governing_law 12
-contract contracts clauses reset CTR-boris-2026-0001    # back to pack default
+contract pack show ncnda
+contract contracts clauses add NCNDA-boris-2026-0001 non_solicit --position 8
+contract contracts clauses edit NCNDA-boris-2026-0001 termination --from-file ./ours.md
+contract contracts clauses reset NCNDA-boris-2026-0001
 ```
 
-A clause's body uses simple Markdown — paragraphs, dash bullets, and
-`1.` numbered lists. Pack clauses use `{{vars}}` like `{{our_legal_name}}`,
-`{{their_legal_name}}`, `{{effective_date}}`, `{{term_text}}`,
+Clause bodies use simple Markdown — paragraphs, dash bullets, `1.`
+numbered lists. Pack clauses substitute `{{vars}}`: the built-ins
+(`{{our_legal_name}}`, `{{effective_date}}`, `{{term_text}}`,
 `{{governing_law}}`, `{{jurisdiction_phrase}}`, `{{fee_text}}`,
-`{{deliverables_block}}`, `{{ip_assignment_text}}`,
-`{{confidentiality_years}}`, `{{termination_notice_days}}`,
-`{{purpose}}`.
+`{{deliverables_block}}`, `{{purpose}}`, …) plus any scalar you set via
+`--term key=value`.
 
 ## State & privacy
 
-- **Config:** shared Paperfoot accounting config (`~/Library/Application
-  Support/com.paperfoot.accounting/config.toml` on macOS).
-- **Database:** shared SQLite at `accounting.db` in the same dir.
-- **Templates:** extracted on first use to the shared assets dir;
+- **Config:** `~/Library/Application Support/com.paperfoot.accounting/config.toml`
+  (macOS), env overrides via `PAPERFOOT_*`.
+- **Database:** shared SQLite `accounting.db` in the same dir.
+- **Templates & fonts:** extracted to the shared assets dir on first use;
   refreshed on upgrade.
 
 Nothing ever leaves your machine. No telemetry. No phone-home.
 
 ## Architecture
 
-- **Rust** binary via `cargo` / single-binary distribution.
-- **SQLite** via `rusqlite` + `refinery` migrations
-  (`finance-core/migrations/V7__contracts.sql`).
-- **Typst** for PDF rendering — templates embedded via `rust-embed`, JSON
-  sidecar pattern (Rust builds `ContractRenderData`, writes it next to
-  the templates in a temp dir, `typst compile` loads the JSON).
-- **Clause packs** as TOML, embedded via `rust-embed`. Five kinds × one
-  `standard` pack at launch.
-- **Built on** [`finance-core`](https://github.com/paperfoot/finance-core)
-  and follows the [`agent-cli-framework`](https://github.com/199-biotechnologies/agent-cli-framework)
-  conventions for agent ergonomics.
+- **Rust** single binary; **SQLite** via `rusqlite` + `refinery`
+  migrations (shared [`finance-core`](https://github.com/paperfoot/finance-core)).
+- **Typst** renders the PDF — templates + OFL fonts embedded via
+  `rust-embed`, JSON sidecar pattern, `typst compile --font-path`.
+- **Clause packs** as TOML, embedded. Seven kinds × `standard` pack.
+- Follows [`agent-cli-framework`](https://github.com/paperfoot/agent-cli-framework);
+  the conformance script runs in CI.
 
 ## Scope
 
-This is a **contract drafting tool**, not legal advice. In scope:
-
-- Clean, plain-English contract generation across common business kinds
-- Composable clauses (include / exclude / override / custom)
-- Lifecycle tracking (draft → sent → signed → active → expired /
-  terminated) with signature records
-- Multiple Typst templates with three distinct voices
-- Shared accounting state with invoice-cli (issuers, clients)
-
-Explicitly out of scope:
-
-- Negotiation workflow / redlines / version diffing
-- E-signature platforms (DocuSign, Dropbox Sign) — out for v1
-- M&A documents, court filings, regulatory submissions
-- Legal advice — these are practical starting points; have a lawyer
-  review for material engagements
+A **contract drafting tool**, not legal advice. Out of scope for now:
+negotiation/redline workflow, e-signature platforms, contracts with more
+than two parties (multi-party NCNDA/JV support is planned — the data
+model groundwork exists), M&A/court/regulatory documents. Have a lawyer
+review anything material.
 
 ## License
 
