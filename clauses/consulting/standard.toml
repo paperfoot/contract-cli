@@ -1,7 +1,7 @@
 [pack]
 slug = "standard"
 name = "Standard Consulting Agreement (plain English)"
-version = "1.0"
+version = "1.1"
 kind = "consulting"
 default_clauses = [
   "background",
@@ -96,4 +96,12 @@ Either party may terminate this agreement for convenience by giving the other at
 heading = "General"
 body = """
 This agreement is the whole agreement on its subject and replaces prior discussions. Changes must be in writing signed by both parties (email exchange is fine where the parties clearly confirm the change). If any part is unenforceable, the rest stays in force. Neither party may assign without the other’s consent, except to an affiliate or successor in connection with a sale of its business. Notices may be given by email to the address on the signature page. This agreement is governed by the laws of {{governing_law}} and the parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+"""
+
+# Optional clauses — not in the default set; add with --include.
+
+[clauses.non_solicit]
+heading = "Non-Solicitation"
+body = """
+While this agreement is in force and for 12 months after it ends, neither party will actively solicit for employment or engagement any employee or contractor of the other with whom it had material contact under this engagement. General recruitment advertising not targeted at those people — and hiring anyone who responds to it — is not a breach.
 """
