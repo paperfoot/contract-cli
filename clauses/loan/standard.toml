@@ -1,0 +1,118 @@
+[pack]
+slug = "standard"
+name = "Standard Loan Agreement (plain English)"
+version = "1.0"
+kind = "loan"
+default_clauses = [
+  "the_loan",
+  "advance",
+  "interest",
+  "repayment",
+  "prepayment",
+  "default",
+  "set_off",
+  "costs",
+  "assignment",
+  "notices",
+  "no_partnership",
+  "third_party_rights",
+  "entire_agreement",
+  "counterparts",
+  "governing_law",
+]
+
+[clauses.the_loan]
+heading = "The Loan"
+body = """
+{{our_legal_name}} (the “Lender”) agrees to lend {{their_legal_name}} (the “Borrower”) {{principal_text}} (the “Loan”). If no amount is stated above, the “Loan” means the total amount the Lender actually advances to the Borrower under this agreement.
+"""
+
+[clauses.advance]
+heading = "Advance"
+body = """
+The Lender will advance the Loan in a single payment, by bank transfer to an account the Borrower nominates in writing (email is fine), on or shortly after {{effective_date}}. If the parties agree in writing to advance the Loan in instalments, each instalment forms part of the Loan from the date it is paid.
+"""
+
+[clauses.interest]
+heading = "Interest"
+body = """
+The Loan is made on the following interest terms: {{interest_text}}. If no interest terms are stated, the Loan is interest-free. Any interest that applies accrues only on the amount of the Loan outstanding from time to time and is payable when the Loan is repaid, unless the parties agree otherwise in writing.
+"""
+
+[clauses.repayment]
+heading = "Repayment"
+body = """
+The Borrower will repay the Loan in full, together with any accrued interest, on or before {{repayment_date}} (the “Repayment Date”), by bank transfer to an account the Lender nominates in writing (email is fine). If no Repayment Date is stated, the Loan is repayable on demand: the Borrower will repay it in full within 30 days after the Lender demands repayment in writing.
+"""
+
+[clauses.prepayment]
+heading = "Prepayment"
+body = """
+The Borrower may repay the Loan early, in whole or in part, at any time and without penalty. Early part-payments reduce the outstanding balance immediately.
+"""
+
+[clauses.default]
+heading = "Default and Acceleration"
+body = """
+Each of the following is an “Event of Default”:
+
+- the Borrower fails to pay any amount due under this agreement within 5 business days of its due date;
+- the Borrower materially breaches this agreement and does not remedy the breach within 15 days of written notice describing it; or
+- the Borrower becomes insolvent, enters bankruptcy or any similar procedure, or stops paying debts as they fall due.
+
+If an Event of Default occurs, the Lender may, by written notice, declare the whole outstanding Loan (with any accrued interest) immediately due and payable, and may recover it as a debt.
+"""
+
+[clauses.set_off]
+heading = "Payments Without Set-Off"
+body = """
+All payments by the Borrower under this agreement must be made in full, without set-off, counterclaim, deduction, or withholding, except for any deduction or withholding required by law.
+"""
+
+[clauses.costs]
+heading = "Costs"
+body = """
+Each party bears its own costs of preparing and entering into this agreement. After an Event of Default, the Borrower will also pay the Lender’s reasonable costs of recovering the Loan, including legal costs.
+"""
+
+[clauses.assignment]
+heading = "Assignment"
+body = """
+The Borrower may not assign or transfer any of its rights or obligations under this agreement. The Lender may assign its right to repayment on written notice to the Borrower.
+"""
+
+[clauses.notices]
+heading = "Notices"
+body = """
+Notices under this agreement must be in writing and sent to the address or email of the relevant party on the signature page, or as later notified in writing.
+"""
+
+[clauses.no_partnership]
+heading = "No Partnership"
+body = """
+Nothing in this agreement creates a partnership, joint venture, agency, or employment relationship between the parties, and the Lender owes the Borrower no duties as an advisor or fiduciary.
+"""
+
+[clauses.third_party_rights]
+heading = "Third-Party Rights"
+body = """
+A person who is not a party to this agreement has no right to enforce any of its terms, whether under the Contracts (Rights of Third Parties) Act 1999 or otherwise.
+"""
+
+[clauses.entire_agreement]
+heading = "Entire Agreement"
+body = """
+This agreement is the entire agreement between the parties on the Loan and replaces any prior discussions or understandings on the same subject. Changes must be in writing and signed by both parties.
+"""
+
+[clauses.counterparts]
+heading = "Counterparts and Electronic Signatures"
+body = """
+This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — are valid and binding.
+"""
+
+[clauses.governing_law]
+heading = "Governing Law and Jurisdiction"
+body = """
+This agreement, and any dispute arising out of or in connection with it, are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+"""
