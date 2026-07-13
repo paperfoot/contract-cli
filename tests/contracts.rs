@@ -1,11 +1,24 @@
 // Framework-contract tests: exit codes, envelope discipline, agent-info
-// routability, help behavior. Everything here is read-only against shared
-// state — no test creates, edits, or deletes issuers/clients/contracts.
+// routability, help behavior. Every invocation runs against an isolated
+// HOME (fresh config/DB per process) so tests never touch the user's real
+// shared accounting DB and parallel test processes can't contend on one
+// SQLite file ("database is locked" flakes in CI).
 
 use assert_cmd::Command;
 
 fn contract() -> Command {
-    Command::cargo_bin("contract").expect("binary builds")
+    let mut cmd = Command::cargo_bin("contract").expect("binary builds");
+    let home = tempfile::Builder::new()
+        .prefix("contract-cli-test-home-")
+        .tempdir()
+        .expect("temp home");
+    cmd.env("HOME", home.path())
+        .env("XDG_CONFIG_HOME", home.path().join(".config"))
+        .env("XDG_DATA_HOME", home.path().join(".local/share"))
+        .env("XDG_CACHE_HOME", home.path().join(".cache"));
+    // Leak the tempdir so it outlives the child process; the OS cleans /tmp.
+    std::mem::forget(home);
+    cmd
 }
 
 // ─── exit-code contract (via the hidden hook) ────────────────────────────

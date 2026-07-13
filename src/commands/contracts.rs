@@ -38,22 +38,6 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
             kind_names.join(", ")
         )));
     }
-    let mut conn = db::open()?;
-
-    // Resolve client first — needed for default issuer
-    let client = db::client_by_slug(&conn, &args.client)?;
-    // Resolve issuer: --as > client.default_issuer > config.default_issuer
-    let issuer_slug = args
-        .r#as
-        .or(client.default_issuer_slug.clone())
-        .or_else(|| crate::config::load().ok().and_then(|c| c.default_issuer))
-        .ok_or_else(|| {
-            AppError::InvalidInput(
-                "no issuer — pass --as <slug>, pin a default on the client, or set config.default_issuer".into(),
-            )
-        })?;
-    let issuer = db::issuer_by_slug(&conn, &issuer_slug)?;
-
     let effective_iso = match args.effective {
         Some(s) => parse_date(&s)?,
         None => chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
@@ -91,15 +75,6 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
             )));
         }
     }
-
-    let governing_law = args
-        .governing_law
-        .unwrap_or_else(|| issuer.jurisdiction.profile().country.to_string());
-    let venue = args.venue;
-
-    let title = args
-        .title
-        .unwrap_or_else(|| default_title(&args.kind, &issuer.name, &client.name));
 
     // Parse fee
     let (fee_type, fee_amount_minor, fee_currency) = match args.fee.as_deref() {
@@ -170,6 +145,33 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         terms_obj.insert(k, Value::String(v));
     }
     let terms_json = Value::Object(terms_obj).to_string();
+
+    // All pure input validation is done — only now touch the database.
+    let mut conn = db::open()?;
+
+    // Resolve client first — needed for default issuer
+    let client = db::client_by_slug(&conn, &args.client)?;
+    // Resolve issuer: --as > client.default_issuer > config.default_issuer
+    let issuer_slug = args
+        .r#as
+        .or(client.default_issuer_slug.clone())
+        .or_else(|| crate::config::load().ok().and_then(|c| c.default_issuer))
+        .ok_or_else(|| {
+            AppError::InvalidInput(
+                "no issuer — pass --as <slug>, pin a default on the client, or set config.default_issuer".into(),
+            )
+        })?;
+    let issuer = db::issuer_by_slug(&conn, &issuer_slug)?;
+
+    let governing_law = args
+        .governing_law
+        .unwrap_or_else(|| issuer.jurisdiction.profile().country.to_string());
+    let venue = args.venue;
+
+    let title = args
+        .title
+        .unwrap_or_else(|| default_title(&args.kind, &issuer.name, &client.name));
+
 
     // Pick clause pack (default: "standard")
     let pack_slug = args.pack.clone().unwrap_or_else(|| "standard".to_string());
