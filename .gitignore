@@ -4,3 +4,4 @@ Cargo.lock
 *.pdf
 .ritalin/
 .task-incomplete
+.claude/tsc-cache/
