@@ -407,13 +407,17 @@ fn row_to_contract(row: &rusqlite::Row) -> rusqlite::Result<Contract> {
 
 pub fn contract_create(conn: &mut Connection, c: &Contract, clauses: &[ContractClauseRow]) -> Result<i64> {
     let tx = conn.transaction()?;
+    // Explicit RFC3339 stamps — the column DEFAULT CURRENT_TIMESTAMP emits a
+    // different format ("YYYY-MM-DD HH:MM:SS") than the update paths write.
+    let now = chrono::Utc::now().to_rfc3339();
     tx.execute(
         "INSERT INTO contracts (number, kind, issuer_id, client_id, title,
                                 effective_date, end_date, term_months,
                                 governing_law, venue, status, notes,
                                 fee_type, fee_amount_minor, fee_currency, fee_schedule,
-                                terms_json, clause_pack, clause_pack_version, default_template)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+                                terms_json, clause_pack, clause_pack_version, default_template,
+                                created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?21)",
         params![
             c.number,
             c.kind,
@@ -435,6 +439,7 @@ pub fn contract_create(conn: &mut Connection, c: &Contract, clauses: &[ContractC
             c.clause_pack,
             c.clause_pack_version,
             c.default_template,
+            now,
         ],
     )?;
     let id = tx.last_insert_rowid();

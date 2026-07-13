@@ -1,10 +1,38 @@
 use clap::{Parser, Subcommand};
 
+const HELP_FOOTER: &str = "\
+Tips:
+  • Run `contract agent-info | jq` for the full capability manifest (commands, flags, exit codes)
+  • The DB is SHARED with invoice-cli — always `contract issuer list` / `contract clients list` before creating entities
+  • Pipe any command to jq for structured data: `contract list | jq '.data'`
+  • Template chain at render: --template > contract.default_template > \"helvetica-nera\"
+  • Drafts render with a DRAFT watermark; use --final for a clean signing copy
+  • `contract doctor` verifies typst, the DB, packs, and templates before you start
+
+Examples:
+  contract new --kind nda --as acme --client meridian --purpose 'evaluating a joint venture' --term-years 3
+    Quick mutual NDA with a 3-year confidentiality term
+
+  contract new --kind consulting --as acme --client meridian --fee fixed:8400:SGD --term-months 3 \\
+      --purpose 'design a dashboard' --deliverable 'Designs' --deliverable 'Build' --ip-assignment client
+    Consulting agreement with a fixed fee and deliverables
+
+  contract render NDA-acme-2026-0001 --final --open
+    Render a clean, watermark-free PDF and open it
+
+  contract sign NDA-acme-2026-0001 --side us --name 'B. Djordjevic' --title Director
+    Record one side's signature (status auto-bumps to 'signed' when both sides sign)
+
+  contract template list | jq '.data'
+    Inspect available PDF templates as structured JSON";
+
 #[derive(Parser, Debug)]
 #[command(
     name = "contract",
     version,
-    about = "Beautiful contracts from the CLI — NDA, consulting, MSA, SOW, service"
+    about = "Beautiful contracts from the CLI — NDA, consulting, MSA, SOW, service",
+    after_long_help = HELP_FOOTER,
+    after_help = HELP_FOOTER
 )]
 pub struct Cli {
     /// Emit JSON envelope on stdout (auto-detected when piped)
@@ -24,7 +52,7 @@ pub enum Commands {
     Issuer(IssuerCmd),
 
     /// Manage clients (counterparties)
-    #[command(subcommand)]
+    #[command(visible_alias = "client", subcommand)]
     Clients(ClientCmd),
 
     /// Manage contracts (new/list/show/render/mark/sign/edit/duplicate/delete)
@@ -55,20 +83,36 @@ pub enum Commands {
     #[command(name = "sign")]
     Sign(SignArgs),
 
+    /// Shorthand: `contract edit <number> …` (= `contract contracts edit …`)
+    #[command(name = "edit")]
+    Edit(ContractEditArgs),
+
+    /// Shorthand: `contract duplicate <number>` (= `contract contracts duplicate …`)
+    #[command(name = "duplicate", visible_alias = "clone")]
+    Duplicate(DuplicateArgs),
+
+    /// Shorthand: `contract delete <number>` (= `contract contracts delete …`)
+    #[command(name = "delete", visible_alias = "rm")]
+    Delete(DeleteArgs),
+
     /// Browse clause packs (the building blocks per contract kind)
-    #[command(subcommand)]
+    #[command(visible_alias = "packs", subcommand)]
     Pack(PackCmd),
 
-    /// Inspect / render templates
-    #[command(subcommand)]
+    /// Inspect / find / preview PDF templates
+    #[command(visible_alias = "templates", subcommand)]
     Template(TemplateCmd),
+
+    /// Browse contract kinds (nda, ncnda, consulting, loan, …)
+    #[command(visible_alias = "kind", subcommand)]
+    Kinds(KindsCmd),
 
     /// Show / edit config
     #[command(subcommand)]
     Config(ConfigCmd),
 
     /// Self-describing JSON manifest for agents
-    #[command(alias = "info")]
+    #[command(visible_alias = "info")]
     AgentInfo,
 
     /// Install the embedded skill into ~/.claude, ~/.codex, ~/.gemini
@@ -78,11 +122,16 @@ pub enum Commands {
     /// Run dependency & config diagnostics
     Doctor,
 
-    /// Self-update from GitHub Releases
+    /// Distribution-aware update (brew / cargo)
     Update {
+        /// Check only — no mutation
         #[arg(long)]
         check: bool,
     },
+
+    /// Hidden: deterministically trigger each exit code (conformance testing)
+    #[command(name = "contract", hide = true)]
+    ExitHook { code: i32 },
 }
 
 // ─── Issuers ─────────────────────────────────────────────────────────────
@@ -90,7 +139,7 @@ pub enum Commands {
 #[derive(Subcommand, Debug)]
 pub enum IssuerCmd {
     /// Add a new issuer
-    #[command(alias = "new")]
+    #[command(visible_alias = "new")]
     Add {
         slug: String,
         #[arg(long)]
@@ -141,11 +190,11 @@ pub enum IssuerCmd {
         #[arg(long)]
         output_dir: Option<String>,
     },
-    #[command(alias = "ls")]
+    #[command(visible_alias = "ls")]
     List,
-    #[command(alias = "get")]
+    #[command(visible_alias = "get")]
     Show { slug: String },
-    #[command(alias = "rm")]
+    #[command(visible_alias = "rm")]
     Delete { slug: String },
 }
 
@@ -153,7 +202,7 @@ pub enum IssuerCmd {
 
 #[derive(Subcommand, Debug)]
 pub enum ClientCmd {
-    #[command(alias = "new")]
+    #[command(visible_alias = "new")]
     Add {
         slug: String,
         #[arg(long)]
@@ -199,11 +248,11 @@ pub enum ClientCmd {
         #[arg(long)]
         notes: Option<String>,
     },
-    #[command(alias = "ls")]
+    #[command(visible_alias = "ls")]
     List,
-    #[command(alias = "get")]
+    #[command(visible_alias = "get")]
     Show { slug: String },
-    #[command(alias = "rm")]
+    #[command(visible_alias = "rm")]
     Delete { slug: String },
 }
 
@@ -267,6 +316,10 @@ pub struct ContractNewArgs {
     /// Days of notice required for termination for convenience
     #[arg(long)]
     pub termination_notice_days: Option<i64>,
+    /// Set an arbitrary term key used by the clause pack's {{vars}},
+    /// e.g. --term principal_text='£10,000 (ten thousand pounds)' (repeat)
+    #[arg(long = "term")]
+    pub terms: Vec<String>,
     /// Pack slug (default = "standard"). Picks a different clause library.
     #[arg(long)]
     pub pack: Option<String>,
@@ -328,45 +381,72 @@ pub struct SignArgs {
     /// Signature date (YYYY-MM-DD; defaults to today)
     #[arg(long)]
     pub date: Option<String>,
+    /// Re-sign an already-executed contract (overwrites the recorded signature)
+    #[arg(long)]
+    pub force: bool,
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct ContractEditArgs {
+    pub number: String,
+    #[arg(long)]
+    pub client: Option<String>,
+    #[arg(long)]
+    pub title: Option<String>,
+    #[arg(long)]
+    pub effective: Option<String>,
+    /// Explicit end date (YYYY-MM-DD). Mutually exclusive with --term-months.
+    #[arg(long, conflicts_with = "term_months")]
+    pub end: Option<String>,
+    #[arg(long)]
+    pub term_months: Option<i64>,
+    #[arg(long)]
+    pub governing_law: Option<String>,
+    #[arg(long)]
+    pub venue: Option<String>,
+    #[arg(long)]
+    pub fee: Option<String>,
+    #[arg(long)]
+    pub fee_schedule: Option<String>,
+    /// Set a term key directly, e.g. --term repayment_date=2026-12-01 (repeat)
+    #[arg(long = "term")]
+    pub terms: Vec<String>,
+    #[arg(long)]
+    pub notes: Option<String>,
+    #[arg(long)]
+    pub template: Option<String>,
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct DuplicateArgs {
+    pub number: String,
+    #[arg(long)]
+    pub client: Option<String>,
+    #[arg(long = "as")]
+    pub r#as: Option<String>,
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct DeleteArgs {
+    pub number: String,
+    /// Allow deleting a non-draft contract
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ContractCmd {
     /// Create a new contract
-    #[command(alias = "new")]
+    #[command(visible_alias = "create")]
     New(ContractNewArgs),
     /// List contracts
-    #[command(alias = "ls")]
+    #[command(visible_alias = "ls")]
     List(ContractListArgs),
     /// Show one contract's metadata + clause list
-    #[command(alias = "get")]
+    #[command(visible_alias = "get")]
     Show { number: String },
     /// Edit DRAFT contract metadata (status != draft is immutable)
-    Edit {
-        number: String,
-        #[arg(long)]
-        client: Option<String>,
-        #[arg(long)]
-        title: Option<String>,
-        #[arg(long)]
-        effective: Option<String>,
-        #[arg(long)]
-        end: Option<String>,
-        #[arg(long)]
-        term_months: Option<i64>,
-        #[arg(long)]
-        governing_law: Option<String>,
-        #[arg(long)]
-        venue: Option<String>,
-        #[arg(long)]
-        fee: Option<String>,
-        #[arg(long)]
-        fee_schedule: Option<String>,
-        #[arg(long)]
-        notes: Option<String>,
-        #[arg(long)]
-        template: Option<String>,
-    },
+    Edit(ContractEditArgs),
     /// Render contract to PDF
     Render(ContractRenderArgs),
     /// Update status: draft | sent | signed | active | expired | terminated
@@ -377,26 +457,17 @@ pub enum ContractCmd {
     #[command(subcommand)]
     Clauses(ClauseCmd),
     /// Clone an existing contract as a new draft
-    Duplicate {
-        number: String,
-        #[arg(long)]
-        client: Option<String>,
-        #[arg(long = "as")]
-        r#as: Option<String>,
-    },
+    #[command(visible_alias = "clone")]
+    Duplicate(DuplicateArgs),
     /// Delete a contract (draft only unless --force)
-    #[command(alias = "rm")]
-    Delete {
-        number: String,
-        #[arg(long)]
-        force: bool,
-    },
+    #[command(visible_alias = "rm")]
+    Delete(DeleteArgs),
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ClauseCmd {
     /// List clauses currently attached to a contract
-    #[command(alias = "ls")]
+    #[command(visible_alias = "ls")]
     List { number: String },
     /// Add a clause to a contract (pack default or custom from --from-file)
     Add {
@@ -427,7 +498,7 @@ pub enum ClauseCmd {
         from_file: Option<String>,
     },
     /// Remove a clause
-    #[command(alias = "rm")]
+    #[command(visible_alias = "rm")]
     Remove { number: String, slug: String },
     /// Move a clause to a new position
     Move {
@@ -444,9 +515,10 @@ pub enum ClauseCmd {
 #[derive(Subcommand, Debug)]
 pub enum PackCmd {
     /// List available kind/pack combinations
-    #[command(alias = "ls")]
+    #[command(visible_alias = "ls")]
     List,
     /// Show available clauses (slug + heading) for a kind + pack
+    #[command(visible_alias = "get")]
     Show {
         kind: String,
         #[arg(long, default_value = "standard")]
@@ -456,8 +528,16 @@ pub enum PackCmd {
 
 #[derive(Subcommand, Debug)]
 pub enum TemplateCmd {
-    #[command(alias = "ls")]
+    /// List templates with descriptions, moods, tags, and fonts
+    #[command(visible_alias = "ls")]
     List,
+    /// Find a template from a free-text description of the look you want
+    #[command(visible_alias = "suggest")]
+    Find {
+        /// e.g. "magazine masthead", "swiss minimal", "warm cream data-room"
+        #[arg(required = true, num_args = 1..)]
+        query: Vec<String>,
+    },
     /// Render a preview contract with synthetic data
     Preview {
         name: String,
@@ -470,13 +550,33 @@ pub enum TemplateCmd {
 }
 
 #[derive(Subcommand, Debug)]
+pub enum KindsCmd {
+    /// List contract kinds with descriptions and trigger tags
+    #[command(visible_alias = "ls")]
+    List,
+    /// Find a contract kind from a free-text description of what you need
+    #[command(visible_alias = "suggest")]
+    Find {
+        /// e.g. "stop them going around me to my contact", "lend money"
+        #[arg(required = true, num_args = 1..)]
+        query: Vec<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
 pub enum ConfigCmd {
+    /// Display current configuration
     Show,
+    /// Print the config file path
     Path,
+    /// Set a config key (default_issuer, default_template, open_pdf, self_update)
     Set { key: String, value: String },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum SkillCmd {
+    /// Install the embedded skill into ~/.claude, ~/.codex, ~/.gemini
     Install,
+    /// Report where the skill is installed and whether it is current
+    Status,
 }

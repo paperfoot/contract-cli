@@ -1,3 +1,8 @@
+//! description: Sober Swiss corporate instrument — Helvetica, black on white, hairline rules. The house default.
+//! mood: corporate, sober, modern
+//! tags: swiss, minimal, monochrome, corporate, modern, sans-serif, clean, black-white, helvetica, plain
+//! fonts: Helvetica Neue (system)
+//! paper: white
 // ═══════════════════════════════════════════════════════════════════════════
 // helvetica-nera — Sober corporate/legal instrument.
 // Left-aligned engagement name leads, kind acts as subtitle in mute.

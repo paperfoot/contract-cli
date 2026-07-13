@@ -2,126 +2,91 @@ use crate::cli::SkillCmd;
 use crate::error::Result;
 use crate::output::{print_success, Ctx};
 
+// The skill is a signpost, not a manual: the binary carries all workflow
+// knowledge in agent-info and --help, so the skill body stays tiny and the
+// description does the routing work.
 const SKILL_MD: &str = r#"---
 name: contract-cli
 description: >
-  Generate beautiful, plain-English contracts (NDA, consulting, MSA, SOW,
-  service) as PDF. Stateful — shares issuers + clients with invoice-cli via
-  the Paperfoot accounting SQLite store. Composable clause packs let the user
-  / agent pick, drop, reorder, or rewrite clauses. Use when the user asks to
-  draft, generate, render, or sign a contract or NDA.
+  Draft, render, and sign business contracts as beautiful PDFs — NDA, NCNDA
+  (non-circumvention), consulting, MSA, SOW, service, loan. Use when the user
+  asks to draft, generate, render, e-sign, or manage a contract, NDA, NCNDA,
+  or loan agreement. Pick a PDF template by look with `contract template find
+  "<description>"` and a contract kind with `contract kinds find "<need>"`.
+  Shares issuers/clients with invoice-cli. Run `contract agent-info` for all
+  commands, flags, and exit codes.
 ---
-
-## contract-cli
 
 `contract` is a stateful CLI for drafting and rendering business contracts.
 
-### Critical: shared state with invoice-cli
-
-The shared SQLite at `~/Library/Application Support/com.paperfoot.accounting/accounting.db`
-is the single source of truth for **issuers** (your companies) and **clients**
-(counterparties) across the whole accounting suite. `invoice` writes here too.
-
-**Before creating a new issuer or client, ALWAYS list first:**
-
-```
-contract issuer list      # or: invoice issuer list
-contract clients list     # or: invoice clients list
-```
-
-If the entity already exists under any slug, reuse it. Don't create
-`alberto-pertusa` if `london-psychiatry-clinic` already covers the same
-person — pick whichever slug the user means, or `contract clients edit`
-to enrich it (legal-name, company-no, jurisdiction are the contract-only
-fields, added in V7).
-
-### Quick start
-
-```
-contract issuer list                                # is there already a "boris"?
-contract clients list                               # is there already a client?
-
-# If not, add — same way invoice-cli adds them, same DB:
-contract issuer add acme --name "Acme Studio" --jurisdiction sg \
-    --address "1 Marina Bay\nSingapore 018989"
-contract clients add meridian --name "Meridian & Co." \
-    --legal-name "Meridian & Co. Pty Ltd" --company-no "ACN 600 123 456" \
-    --jurisdiction "Victoria, Australia" \
-    --address "401 Collins Street\nMelbourne VIC 3000\nAustralia"
-
-# Mutual NDA, 3-year term
-contract new --kind nda --as acme --client meridian \
-    --purpose "evaluation of a joint product line" --term-years 3
-
-# Consulting agreement, fixed fee, 3-month term, IP to client
-contract new --kind consulting --as acme --client meridian \
-    --purpose "design and build a customer dashboard" \
-    --fee fixed:8400:SGD --fee-schedule on-completion --term-months 3 \
-    --deliverable "Discovery" --deliverable "Designs" --deliverable "Implementation" \
-    --ip-assignment client --governing-law Singapore
-
-contract list
-contract render CTR-acme-2026-0001 --open                   # DRAFT watermark by default
-contract render CTR-acme-2026-0001 --final --open           # clean copy for signature
-contract sign CTR-acme-2026-0001 --side us --name "B. Djordjevic" --title CEO
-contract sign CTR-acme-2026-0001 --side them --name "Sophie Lin" --title "Head of Marketing"
-# status auto-bumps to 'signed' once both sides have signed
-```
-
-### Composing clauses
-
-Every contract is built from a clause pack (`pack show <kind>` lists them).
-By default it includes the pack's `default_clauses` in order. Customise per
-contract:
-
-```
-contract clauses list CTR-acme-2026-0001
-contract clauses add CTR-acme-2026-0001 non_solicit --from-file ./extra.md --position 8
-contract clauses edit CTR-acme-2026-0001 termination --from-file ./our-termination.md
-contract clauses remove CTR-acme-2026-0001 warranties
-contract clauses move CTR-acme-2026-0001 governing_law 12
-contract clauses reset CTR-acme-2026-0001          # back to pack default
-```
-
-A clause's `--body` / `--from-file` may use plain Markdown with paragraphs,
-`- ` bullets, and `1. ` numbered lists. Pack clauses use `{{vars}}` like
-`{{our_legal_name}}`, `{{their_legal_name}}`, `{{effective_date}}`,
-`{{term_text}}`, `{{governing_law}}`, `{{jurisdiction_phrase}}`,
-`{{fee_text}}`, `{{deliverables_block}}`, `{{ip_assignment_text}}`,
-`{{confidentiality_years}}`, `{{termination_notice_days}}`, `{{purpose}}`.
-
-### Tips
-
-- Run `contract agent-info` for the full JSON manifest.
-- Run `contract doctor --json` to verify typst + DB + packs + templates.
-- Template chain at render: `--template` > `contract.default_template` > `"helvetica-nera"`.
-- Templates: `helvetica-nera` (Swiss monochrome), `vienna-legal` (Bauhaus/terracotta), `editorial` (serif).
-- Drafts render with a diagonal DRAFT watermark by default. Use `--final`
-  for clean copies and `--draft` to force the watermark on a signed contract.
-- These clauses are practical plain-English starting points, **not legal advice** —
-  have a lawyer review for material engagements.
+- Run `contract agent-info | jq` for the full manifest (commands, exit codes, envelope).
+- The SQLite DB is SHARED with invoice-cli: ALWAYS `contract issuer list` and
+  `contract clients list` before creating entities — reuse existing slugs.
+- `contract kinds find "<what you need>"` and `contract template find "<look>"`
+  resolve fuzzy descriptions to exact names; you make the final pick.
+- Drafts render with a DRAFT watermark; `--final` produces the signing copy.
+- Not legal advice — suggest lawyer review for material engagements.
 "#;
 
-pub fn run(_cmd: SkillCmd, ctx: Ctx) -> Result<()> {
-    let targets = [
+fn targets() -> [std::path::PathBuf; 3] {
+    [
         dirs_path(".claude/skills/contract-cli/SKILL.md"),
         dirs_path(".codex/skills/contract-cli/SKILL.md"),
         dirs_path(".gemini/skills/contract-cli/SKILL.md"),
-    ];
-    let mut written = Vec::new();
-    for t in targets {
-        if let Some(parent) = t.parent() {
-            std::fs::create_dir_all(parent)?;
+    ]
+}
+
+pub fn run(cmd: SkillCmd, ctx: Ctx) -> Result<()> {
+    match cmd {
+        SkillCmd::Install => {
+            let mut written = Vec::new();
+            for t in targets() {
+                if let Some(parent) = t.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&t, SKILL_MD)?;
+                written.push(t.display().to_string());
+            }
+            print_success(ctx, &written, |paths| {
+                for p in paths {
+                    println!("installed → {}", p);
+                }
+            });
+            Ok(())
         }
-        std::fs::write(&t, SKILL_MD)?;
-        written.push(t.display().to_string());
+        SkillCmd::Status => {
+            #[derive(serde::Serialize)]
+            struct SkillStatus {
+                path: String,
+                installed: bool,
+                current: bool,
+            }
+            let statuses: Vec<SkillStatus> = targets()
+                .iter()
+                .map(|t| {
+                    let on_disk = std::fs::read_to_string(t).ok();
+                    SkillStatus {
+                        path: t.display().to_string(),
+                        installed: on_disk.is_some(),
+                        current: on_disk.as_deref() == Some(SKILL_MD),
+                    }
+                })
+                .collect();
+            print_success(ctx, &statuses, |ss| {
+                for s in ss {
+                    let state = if s.current {
+                        "current"
+                    } else if s.installed {
+                        "STALE — run: contract skill install"
+                    } else {
+                        "not installed"
+                    };
+                    println!("  {} — {}", s.path, state);
+                }
+            });
+            Ok(())
+        }
     }
-    print_success(ctx, &written, |paths| {
-        for p in paths {
-            println!("installed → {}", p);
-        }
-    });
-    Ok(())
 }
 
 fn dirs_path(rel: &str) -> std::path::PathBuf {

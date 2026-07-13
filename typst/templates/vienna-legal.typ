@@ -1,3 +1,8 @@
+//! description: Warm boutique consulting look — cream paper, terracotta accent, centred title, Bauhaus poise.
+//! mood: warm, friendly, boutique
+//! tags: warm, cream, terracotta, boutique, bauhaus, colorful, centred, vienna, accent
+//! fonts: Helvetica Neue (system)
+//! paper: cream
 // ═══════════════════════════════════════════════════════════════════════════
 // vienna-legal — Warm boutique consulting contract.
 // Cream paper, terracotta accent. Centred title.

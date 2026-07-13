@@ -119,6 +119,8 @@ fn kind_label(kind: &str, terms: &serde_json::Value) -> String {
                 "Mutual Non-Disclosure Agreement".into()
             }
         }
+        "ncnda" => "Non-Circumvention & Non-Disclosure Agreement".into(),
+        "loan" => "Loan Agreement".into(),
         "msa" => "Master Services Agreement".into(),
         "sow" => "Statement of Work".into(),
         "service" => "Service Agreement".into(),
@@ -134,9 +136,6 @@ fn capitalize(s: &str) -> String {
 
 fn party_role_labels(kind: &str, terms: &serde_json::Value) -> (String, String) {
     match kind {
-        "consulting" => ("Consultant".into(), "Client".into()),
-        "msa" | "sow" => ("Provider".into(), "Client".into()),
-        "service" => ("Provider".into(), "Customer".into()),
         "nda" => {
             let mutuality = terms.get("mutuality").and_then(|v| v.as_str()).unwrap_or("mutual");
             if mutuality == "mutual" {
@@ -150,7 +149,10 @@ fn party_role_labels(kind: &str, terms: &serde_json::Value) -> (String, String) 
                 }
             }
         }
-        _ => ("Party A".into(), "Party B".into()),
+        "ncnda" => ("Party A".into(), "Party B".into()),
+        _ => crate::kinds::get(kind)
+            .map(|k| (k.roles.0.to_string(), k.roles.1.to_string()))
+            .unwrap_or_else(|| ("Party A".into(), "Party B".into())),
     }
 }
 
@@ -286,7 +288,7 @@ fn deliverables_block(terms: &serde_json::Value) -> String {
         })
         .unwrap_or_default();
     if items.is_empty() {
-        "_To be agreed in writing by the parties._".into()
+        "To be agreed in writing by the parties.".into()
     } else {
         items
             .into_iter()
@@ -296,6 +298,20 @@ fn deliverables_block(terms: &serde_json::Value) -> String {
     }
 }
 
+/// Escape user-controlled text for a Typst markup context. The parties prose
+/// is eval'd as markup so the bold `*NAME*` markers work; every character a
+/// counterparty name/address could use to smuggle markup in must be escaped.
+fn esc_markup(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if matches!(c, '\\' | '#' | '*' | '_' | '`' | '$' | '<' | '>' | '@' | '[' | ']' | '~' | '/' | '-') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
 /// Generate the traditional "(N) <NAME> of <address>, <qualifier> (the "Role")"
 /// prose used in UK/Commonwealth contracts. Companies get an incorporation
 /// qualifier ("a company incorporated in England and Wales, Co. No. 12345678");
@@ -303,28 +319,26 @@ fn deliverables_block(terms: &serde_json::Value) -> String {
 /// label (Consultant / Client / Provider / Party A / etc).
 fn party_intro_prose(p: &PartyData) -> String {
     let legal = p.legal_name.clone().unwrap_or_else(|| p.display_name.clone());
-    let name_upper = legal.to_uppercase();
-    let addr = p.address.join(", ");
+    let name_upper = esc_markup(&legal.to_uppercase());
+    let addr = esc_markup(&p.address.join(", "));
     let looks_like_company = looks_like_company_name(&legal);
     let mut qualifier = String::new();
     if let Some(j) = &p.jurisdiction {
         if looks_like_company {
-            qualifier.push_str(&format!(", a company incorporated in {j}"));
+            qualifier.push_str(&format!(", a company incorporated in {}", esc_markup(j)));
             if let Some(co) = &p.company_no {
-                qualifier.push_str(&format!(" (Co. No. {co})"));
-            } else {
-                qualifier.push(')');
-                // remove the trailing ')' we just over-added; only add if
-                // a company-no is missing AND we want no closing paren.
-                qualifier.pop();
+                qualifier.push_str(&format!(" (Co. No. {})", esc_markup(co)));
             }
         }
     } else if let Some(co) = &p.company_no {
         // Jurisdiction missing but company number known.
-        qualifier.push_str(&format!(", company no. {co}"));
+        qualifier.push_str(&format!(", company no. {}", esc_markup(co)));
     }
     // Use Typst's single-asterisk bold syntax so the name reads as bold.
-    format!("*{name_upper}* of {addr}{qualifier} (the \"{role}\")", role = p.role_label)
+    format!(
+        "*{name_upper}* of {addr}{qualifier} (the \"{role}\")",
+        role = esc_markup(&p.role_label)
+    )
 }
 
 fn looks_like_company_name(s: &str) -> bool {
@@ -344,10 +358,12 @@ fn looks_like_company_name(s: &str) -> bool {
 fn auto_default_title(kind: &str, issuer_name: &str, client_name: &str) -> String {
     match kind {
         "nda" => format!("NDA — {issuer_name} & {client_name}"),
+        "ncnda" => format!("NCNDA — {issuer_name} & {client_name}"),
         "consulting" => format!("Consulting Agreement — {issuer_name} × {client_name}"),
         "msa" => format!("Master Services Agreement — {issuer_name} & {client_name}"),
         "sow" => format!("Statement of Work — {issuer_name} × {client_name}"),
         "service" => format!("Service Agreement — {issuer_name} for {client_name}"),
+        "loan" => format!("Loan Agreement — {issuer_name} & {client_name}"),
         _ => format!("Agreement — {issuer_name} & {client_name}"),
     }
 }
@@ -462,6 +478,23 @@ fn vars_from(
         "fee_text".into(),
         fee_text(contract).unwrap_or_else(|| "as separately agreed in writing".into()),
     );
+    // Any other scalar term becomes a {{var}} directly — this is what lets
+    // new kinds (loan: principal_text, repayment_date, interest_text; ncnda:
+    // non_circumvention_months, commission_text) work with zero Rust changes.
+    if let Some(obj) = terms.as_object() {
+        for (key, val) in obj {
+            if v.contains_key(key) {
+                continue;
+            }
+            let s = match val {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Number(n) => n.to_string(),
+                serde_json::Value::Bool(b) => b.to_string(),
+                _ => continue,
+            };
+            v.insert(key.clone(), s);
+        }
+    }
     v
 }
 
@@ -524,9 +557,13 @@ pub fn build_render_data(
         their_signer_date: contract.signed_by_them_at.as_deref().map(fmt_date),
     };
 
-    // DRAFT watermark logic: implicit unless contract is signed/active, but
-    // user can force either direction.
-    let is_executed = matches!(contract.status.as_str(), "signed" | "active");
+    // DRAFT watermark logic: implicit unless the contract has been executed
+    // (signed/active, or has since expired / been terminated), but the user
+    // can force either direction.
+    let is_executed = matches!(
+        contract.status.as_str(),
+        "signed" | "active" | "expired" | "terminated"
+    );
     let draft = if force_draft {
         true
     } else if force_final {
@@ -598,10 +635,15 @@ pub fn render_to_pdf(
     std::fs::write(&json_path, serde_json::to_vec_pretty(&data)?)?;
 
     let template_path = root.join("templates").join(format!("{template}.typ"));
-    let status = Command::new("typst")
-        .arg("compile")
-        .arg("--root")
-        .arg(root)
+    let mut cmd = Command::new("typst");
+    cmd.arg("compile").arg("--root").arg(root);
+    // Embedded OFL fonts (typst/fonts/**) travel with the assets; point typst
+    // at them so templates render identically on machines without the faces.
+    let fonts_dir = root.join("fonts");
+    if fonts_dir.is_dir() {
+        cmd.arg("--font-path").arg(&fonts_dir);
+    }
+    let status = cmd
         .arg(&template_path)
         .arg(out_path)
         .status()

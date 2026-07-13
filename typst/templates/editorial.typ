@@ -1,3 +1,8 @@
+//! description: Formal serif on soft cream — centred axis, reads like a deed. Classic and literary.
+//! mood: formal, classic, literary
+//! tags: serif, classic, formal, traditional, deed, elegant, literary, editorial, georgia
+//! fonts: Georgia (system)
+//! paper: cream
 // ═══════════════════════════════════════════════════════════════════════════
 // editorial — Formal serif. Centred title. Roman semibold (italic only on
 // the project subtitle when present). Reads like a deed.

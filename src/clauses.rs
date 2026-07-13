@@ -60,6 +60,24 @@ pub fn load_pack(kind: &str, pack_slug: &str) -> Result<Pack> {
         .map_err(|e| AppError::Other(format!("invalid pack {path}: {e}")))
 }
 
+fn humanize_slug(slug: &str) -> String {
+    slug.split(['_', '-'])
+        .filter(|w| !w.is_empty())
+        .enumerate()
+        .map(|(i, w)| {
+            if i == 0 {
+                let mut c = w.chars();
+                c.next()
+                    .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+                    .unwrap_or_default()
+            } else {
+                w.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 pub fn list_packs() -> Vec<(String, String)> {
     PackAssets::iter()
         .filter_map(|p| {
@@ -73,12 +91,34 @@ pub fn list_packs() -> Vec<(String, String)> {
 
 /// Resolve a body template against a flat variable map. `{{name}}` tokens are
 /// replaced; unknown tokens are left in place (so previews don't blow up).
+/// Single-pass scan: substituted values are never themselves re-expanded, so
+/// a value containing `{{...}}` text renders literally instead of recursing.
 pub fn expand(body: &str, vars: &BTreeMap<String, String>) -> String {
-    let mut out = body.to_string();
-    for (k, v) in vars {
-        let token = format!("{{{{{k}}}}}");
-        out = out.replace(&token, v);
+    let mut out = String::with_capacity(body.len());
+    let mut rest = body;
+    while let Some(start) = rest.find("{{") {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 2..];
+        match after.find("}}") {
+            Some(end) => {
+                let key = &after[..end];
+                match vars.get(key) {
+                    Some(v) => out.push_str(v),
+                    None => {
+                        out.push_str("{{");
+                        out.push_str(key);
+                        out.push_str("}}");
+                    }
+                }
+                rest = &after[end + 2..];
+            }
+            None => {
+                out.push_str("{{");
+                rest = after;
+            }
+        }
     }
+    out.push_str(rest);
     out
 }
 
@@ -95,16 +135,28 @@ pub fn resolve(
 ) -> Result<Vec<ResolvedClause>> {
     let mut out = Vec::with_capacity(included.len());
     for (i, slug) in included.iter().enumerate() {
-        let def = pack
-            .clauses
-            .get(slug)
-            .ok_or_else(|| AppError::NotFound(format!("clause '{slug}' not in pack")))?;
+        let def = pack.clauses.get(slug);
         let (head_override, body_override) = overrides
             .get(slug)
             .cloned()
             .unwrap_or((None, None));
-        let heading = head_override.unwrap_or_else(|| def.heading.clone());
-        let body_template = body_override.unwrap_or_else(|| def.body.clone());
+        // Custom clauses (added with --body / --from-file) don't exist in the
+        // pack — their heading/body live entirely in the override.
+        let heading = match (head_override, def) {
+            (Some(h), _) => h,
+            (None, Some(d)) => d.heading.clone(),
+            (None, None) => humanize_slug(slug),
+        };
+        let body_template = match (body_override, def) {
+            (Some(b), _) => b,
+            (None, Some(d)) => d.body.clone(),
+            (None, None) => {
+                return Err(AppError::NotFound(format!(
+                    "clause '{slug}' is not in the pack and has no custom body. \
+                     Set one with: contract clauses edit <number> {slug} --body \"…\""
+                )))
+            }
+        };
         out.push(ResolvedClause {
             position: i as i64,
             slug: slug.clone(),

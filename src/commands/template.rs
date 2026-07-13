@@ -13,14 +13,63 @@ use crate::typst_assets;
 pub fn run(cmd: TemplateCmd, ctx: Ctx) -> Result<()> {
     match cmd {
         TemplateCmd::List => {
-            let names = typst_assets::list_templates()?;
-            print_success(ctx, &names, |ns| {
-                if ns.is_empty() {
+            let metas = typst_assets::list_template_meta()?;
+            print_success(ctx, &metas, |ms| {
+                if ms.is_empty() {
                     println!("(no templates)");
                 } else {
-                    for n in ns {
-                        println!("  {n}");
+                    for m in ms {
+                        println!("  {:<16} {}", m.name, m.description);
+                        if !m.tags.is_empty() {
+                            println!("  {:<16} tags: {}", "", m.tags.join(", "));
+                        }
                     }
+                }
+            });
+            Ok(())
+        }
+        TemplateCmd::Find { query } => {
+            let query = query.join(" ");
+            let metas = typst_assets::list_template_meta()?;
+            let mut scored: Vec<(f64, &typst_assets::TemplateMeta)> = metas
+                .iter()
+                .map(|m| {
+                    let tags: Vec<&str> = m
+                        .tags
+                        .iter()
+                        .chain(m.mood.iter())
+                        .map(String::as_str)
+                        .collect();
+                    let haystack = format!("{} {} {}", m.name, m.description, m.fonts);
+                    (crate::kinds::score(&query, &haystack, &tags), m)
+                })
+                .filter(|(s, _)| *s > 0.0)
+                .collect();
+            scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+            if scored.is_empty() {
+                return Err(crate::error::AppError::NotFound(format!(
+                    "no template matches '{query}'. Run: contract template list"
+                )));
+            }
+            #[derive(serde::Serialize)]
+            struct Match<'a> {
+                name: &'a str,
+                score: f64,
+                description: &'a str,
+                tags: &'a [String],
+            }
+            let matches: Vec<Match> = scored
+                .iter()
+                .map(|(s, m)| Match {
+                    name: &m.name,
+                    score: (*s * 100.0).round() / 100.0,
+                    description: &m.description,
+                    tags: &m.tags,
+                })
+                .collect();
+            print_success(ctx, &matches, |ms| {
+                for m in ms {
+                    println!("  {:<16} {:>5.2}  {}", m.name, m.score, m.description);
                 }
             });
             Ok(())

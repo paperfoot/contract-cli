@@ -1,13 +1,28 @@
 use crate::cli::ConfigCmd;
 use crate::config;
-use crate::error::Result;
-use crate::output::{print_raw, print_success, Ctx};
+use crate::error::{AppError, Result};
+use crate::output::{print_success, Ctx};
+
+fn parse_bool(key: &str, value: &str) -> Result<bool> {
+    match value.to_lowercase().as_str() {
+        "true" | "1" | "yes" | "on" => Ok(true),
+        "false" | "0" | "no" | "off" => Ok(false),
+        _ => Err(AppError::InvalidInput(format!(
+            "invalid value '{value}' for {key} — expected true or false"
+        ))),
+    }
+}
 
 pub fn run(cmd: ConfigCmd, ctx: Ctx) -> Result<()> {
     match cmd {
         ConfigCmd::Show => {
             let cfg = config::load()?;
-            print_raw(&cfg);
+            print_success(ctx, &cfg, |c| {
+                match toml::to_string_pretty(c) {
+                    Ok(t) => print!("{t}"),
+                    Err(_) => println!("{c:?}"),
+                }
+            });
             Ok(())
         }
         ConfigCmd::Path => {
@@ -26,13 +41,13 @@ pub fn run(cmd: ConfigCmd, ctx: Ctx) -> Result<()> {
                     cfg.default_template = value.clone();
                 }
                 "open_pdf" => {
-                    cfg.open_pdf = value.parse().unwrap_or(true);
+                    cfg.open_pdf = parse_bool(&key, &value)?;
                 }
                 "self_update" => {
-                    cfg.self_update = value.parse().unwrap_or(true);
+                    cfg.self_update = parse_bool(&key, &value)?;
                 }
                 _ => {
-                    return Err(crate::error::AppError::InvalidInput(format!(
+                    return Err(AppError::InvalidInput(format!(
                         "unknown config key '{key}' (try: default_issuer, default_template, open_pdf, self_update)"
                     )));
                 }

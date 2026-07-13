@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::process::Command;
 
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate};
 use serde_json::{json, Value};
 
 use crate::cli::{ContractCmd, ContractListArgs, ContractNewArgs, ContractRenderArgs, SignArgs};
@@ -17,53 +17,25 @@ pub fn run(cmd: ContractCmd, ctx: Ctx) -> Result<()> {
         ContractCmd::New(args) => cmd_new(args, ctx),
         ContractCmd::List(args) => cmd_list(args, ctx),
         ContractCmd::Show { number } => cmd_show(&number, ctx),
-        ContractCmd::Edit {
-            number,
-            client,
-            title,
-            effective,
-            end,
-            term_months,
-            governing_law,
-            venue,
-            fee,
-            fee_schedule,
-            notes,
-            template,
-        } => cmd_edit(
-            number,
-            client,
-            title,
-            effective,
-            end,
-            term_months,
-            governing_law,
-            venue,
-            fee,
-            fee_schedule,
-            notes,
-            template,
-            ctx,
-        ),
+        ContractCmd::Edit(args) => cmd_edit(args, ctx),
         ContractCmd::Render(args) => cmd_render(args, ctx),
         ContractCmd::Mark { number, status } => cmd_mark(&number, &status, ctx),
         ContractCmd::Sign(args) => cmd_sign(args, ctx),
         ContractCmd::Clauses(cmd) => super::clauses::run(cmd, ctx),
-        ContractCmd::Duplicate { number, client, r#as } => cmd_duplicate(&number, client, r#as, ctx),
-        ContractCmd::Delete { number, force } => cmd_delete(&number, force, ctx),
+        ContractCmd::Duplicate(args) => cmd_duplicate(&args.number, args.client, args.r#as, ctx),
+        ContractCmd::Delete(args) => cmd_delete(&args.number, args.force, ctx),
     }
 }
 
 // ─── new ─────────────────────────────────────────────────────────────────
 
-const KINDS: &[&str] = &["consulting", "nda", "msa", "sow", "service"];
-
 fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
-    if !KINDS.contains(&args.kind.as_str()) {
+    let kind_names = crate::kinds::names();
+    if !kind_names.contains(&args.kind.as_str()) {
         return Err(AppError::InvalidInput(format!(
             "unknown kind '{}'. Expected one of: {}",
             args.kind,
-            KINDS.join(", ")
+            kind_names.join(", ")
         )));
     }
     let mut conn = db::open()?;
@@ -84,7 +56,7 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
 
     let effective_iso = match args.effective {
         Some(s) => parse_date(&s)?,
-        None => Utc::now().date_naive().format("%Y-%m-%d").to_string(),
+        None => chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
     };
     let end_iso = match args.end {
         Some(s) => Some(parse_date(&s)?),
@@ -100,10 +72,24 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         (None, Some(y)) => Some(y * 12),
         (None, None) => None,
     };
+    if let Some(m) = term_months {
+        if m <= 0 {
+            return Err(AppError::InvalidInput(format!(
+                "invalid term length {m} — must be a positive number of months"
+            )));
+        }
+    }
     if end_iso.is_some() && term_months.is_some() {
         return Err(AppError::InvalidInput(
             "--end and --term-months/--term-years are mutually exclusive".into(),
         ));
+    }
+    if let Some(t) = &args.template {
+        if !crate::typst_assets::has_template(t)? {
+            return Err(AppError::InvalidInput(format!(
+                "template '{t}' not found. Run: contract template list"
+            )));
+        }
     }
 
     let governing_law = args
@@ -123,7 +109,14 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
             (Some(t), Some(a), Some(c))
         }
     };
-    let fee_schedule = args.fee_schedule;
+    let fee_schedule = match args.fee_schedule.as_deref() {
+        Some(v) => Some(validate_choice(
+            "--fee-schedule",
+            v,
+            &["on-completion", "monthly", "on-milestone", "upon-invoice"],
+        )?),
+        None => None,
+    };
 
     // Build terms_json
     let mut terms_obj = serde_json::Map::new();
@@ -133,21 +126,23 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
     if let Some(n) = args.termination_notice_days {
         terms_obj.insert("termination_notice_days".into(), json!(n));
     }
-    if args.kind == "nda" {
-        terms_obj.insert(
-            "mutuality".into(),
-            Value::String(args.mutuality.clone().unwrap_or_else(|| "mutual".into())),
-        );
-        terms_obj.insert(
-            "disclosing_side".into(),
-            Value::String(args.disclosing_side.clone().unwrap_or_else(|| {
-                if args.mutuality.as_deref() == Some("unilateral") {
+    if matches!(args.kind.as_str(), "nda" | "ncnda") {
+        let mutuality = match args.mutuality.as_deref() {
+            Some(v) => validate_choice("--mutuality", v, &["mutual", "unilateral"])?,
+            None => "mutual".into(),
+        };
+        let disclosing = match args.disclosing_side.as_deref() {
+            Some(v) => validate_choice("--disclosing-side", v, &["us", "them", "both"])?,
+            None => {
+                if mutuality == "unilateral" {
                     "us".into()
                 } else {
                     "both".into()
                 }
-            })),
-        );
+            }
+        };
+        terms_obj.insert("mutuality".into(), Value::String(mutuality));
+        terms_obj.insert("disclosing_side".into(), Value::String(disclosing));
         terms_obj.insert("confidentiality_years".into(), json!(3));
     } else if matches!(args.kind.as_str(), "consulting" | "msa" | "sow" | "service") {
         if !args.deliverables.is_empty() {
@@ -156,12 +151,23 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
                 Value::Array(args.deliverables.iter().cloned().map(Value::String).collect()),
             );
         }
-        if let Some(ip) = &args.ip_assignment {
-            terms_obj.insert("ip_assignment".into(), Value::String(ip.clone()));
+        if let Some(ip) = args.ip_assignment.as_deref() {
+            let ip = validate_choice(
+                "--ip-assignment",
+                ip,
+                &["client", "consultant", "provider", "shared"],
+            )?;
+            terms_obj.insert("ip_assignment".into(), Value::String(ip));
         }
         terms_obj
             .entry("confidentiality_years".to_string())
             .or_insert(json!(3));
+    }
+    // Free-form --term key=value pairs (the extension point for loan / ncnda
+    // pack {{vars}} like principal_text, repayment_date, interest_text).
+    for spec in &args.terms {
+        let (k, v) = parse_term_kv(spec)?;
+        terms_obj.insert(k, Value::String(v));
     }
     let terms_json = Value::Object(terms_obj).to_string();
 
@@ -202,7 +208,7 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
     // Generate number
     let year = NaiveDate::parse_from_str(&effective_iso, "%Y-%m-%d")
         .map(|d| d.year())
-        .unwrap_or_else(|_| Utc::now().year());
+        .unwrap_or_else(|_| chrono::Local::now().year());
     let number = db::next_contract_number(&conn, &issuer, year, &args.kind)?;
 
     let contract = Contract {
@@ -254,10 +260,12 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
 fn default_title(kind: &str, issuer_name: &str, client_name: &str) -> String {
     match kind {
         "nda" => format!("NDA — {issuer_name} & {client_name}"),
+        "ncnda" => format!("NCNDA — {issuer_name} & {client_name}"),
         "consulting" => format!("Consulting Agreement — {issuer_name} × {client_name}"),
         "msa" => format!("Master Services Agreement — {issuer_name} & {client_name}"),
         "sow" => format!("Statement of Work — {issuer_name} × {client_name}"),
         "service" => format!("Service Agreement — {issuer_name} for {client_name}"),
+        "loan" => format!("Loan Agreement — {issuer_name} & {client_name}"),
         _ => format!("Agreement — {issuer_name} & {client_name}"),
     }
 }
@@ -270,7 +278,7 @@ fn parse_date(s: &str) -> Result<String> {
 
 fn parse_fee(spec: &str) -> Result<(String, i64, String)> {
     let parts: Vec<&str> = spec.split(':').collect();
-    if parts.len() < 3 {
+    if parts.len() != 3 {
         return Err(AppError::InvalidInput(format!(
             "fee spec '{spec}' — expected type:amount:currency (e.g. fixed:8400:SGD)"
         )));
@@ -281,13 +289,60 @@ fn parse_fee(spec: &str) -> Result<(String, i64, String)> {
             "unknown fee type '{kind}' (expected fixed | hourly | daily | retainer)"
         )));
     }
+    // Strip a "/month"-style cadence suffix from the currency segment; the
+    // cadence belongs in --fee-schedule, not the currency code.
+    let currency = parts[2]
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_uppercase();
+    if currency.len() != 3 || !currency.chars().all(|c| c.is_ascii_alphabetic()) {
+        return Err(AppError::InvalidInput(format!(
+            "invalid currency '{}' — expected a 3-letter ISO code (e.g. SGD, GBP, USD)",
+            parts[2]
+        )));
+    }
     let amount_major: f64 = parts[1].parse().map_err(|_| {
         AppError::InvalidInput(format!("invalid fee amount '{}': must be a number", parts[1]))
     })?;
-    let currency = parts[2].to_uppercase();
-    // allow trailing "/month" etc — ignore for now
+    if !amount_major.is_finite() || amount_major <= 0.0 {
+        return Err(AppError::InvalidInput(format!(
+            "invalid fee amount '{}': must be a positive number",
+            parts[1]
+        )));
+    }
     let amount_minor = (amount_major * 100.0).round() as i64;
     Ok((kind, amount_minor, currency))
+}
+
+/// Validate a repeatable --term key=value flag into (key, value).
+fn parse_term_kv(spec: &str) -> Result<(String, String)> {
+    let (k, v) = spec.split_once('=').ok_or_else(|| {
+        AppError::InvalidInput(format!(
+            "invalid --term '{spec}' — expected key=value (e.g. repayment_date=2026-12-01)"
+        ))
+    })?;
+    let k = k.trim();
+    if k.is_empty() || !k.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(AppError::InvalidInput(format!(
+            "invalid --term key '{k}' — use snake_case letters/digits"
+        )));
+    }
+    Ok((k.to_string(), v.to_string()))
+}
+
+/// Enum-flag validation: lowercase + membership check with a helpful error.
+fn validate_choice(flag: &str, value: &str, allowed: &[&str]) -> Result<String> {
+    let v = value.trim().to_lowercase();
+    if allowed.contains(&v.as_str()) {
+        Ok(v)
+    } else {
+        Err(AppError::InvalidInput(format!(
+            "invalid {flag} '{value}' (expected one of: {})",
+            allowed.join(" | ")
+        )))
+    }
 }
 
 // ─── list ─────────────────────────────────────────────────────────────────
@@ -362,47 +417,63 @@ fn cmd_show(number: &str, ctx: Ctx) -> Result<()> {
 // ─── edit ─────────────────────────────────────────────────────────────────
 
 #[allow(clippy::too_many_arguments)]
-fn cmd_edit(
-    number: String,
-    client: Option<String>,
-    title: Option<String>,
-    effective: Option<String>,
-    end: Option<String>,
-    term_months: Option<i64>,
-    governing_law: Option<String>,
-    venue: Option<String>,
-    fee: Option<String>,
-    fee_schedule: Option<String>,
-    notes: Option<String>,
-    template: Option<String>,
-    ctx: Ctx,
-) -> Result<()> {
+fn cmd_edit(args: crate::cli::ContractEditArgs, ctx: Ctx) -> Result<()> {
     let conn = db::open()?;
+    let number = args.number;
     let mut c = db::contract_get_or_404(&conn, &number)?;
-    if let Some(slug) = client {
+    if let Some(slug) = args.client {
         c.client_id = db::client_by_slug(&conn, &slug)?.id;
     }
-    if let Some(v) = title { c.title = v; }
-    if let Some(v) = effective { c.effective_date = parse_date(&v)?; }
-    if let Some(v) = end {
+    if let Some(v) = args.title { c.title = v; }
+    if let Some(v) = args.effective { c.effective_date = parse_date(&v)?; }
+    if let Some(v) = args.end {
         c.end_date = Some(parse_date(&v)?);
         c.term_months = None;
     }
-    if let Some(v) = term_months {
+    if let Some(v) = args.term_months {
+        if v <= 0 {
+            return Err(AppError::InvalidInput(format!(
+                "invalid term length {v} — must be a positive number of months"
+            )));
+        }
         c.term_months = Some(v);
         c.end_date = None;
     }
-    if let Some(v) = governing_law { c.governing_law = v; }
-    if let Some(v) = venue { c.venue = Some(v); }
-    if let Some(v) = fee {
+    if let Some(v) = args.governing_law { c.governing_law = v; }
+    if let Some(v) = args.venue { c.venue = Some(v); }
+    if let Some(v) = args.fee {
         let (t, a, cur) = parse_fee(&v)?;
         c.fee_type = Some(t);
         c.fee_amount_minor = Some(a);
         c.fee_currency = Some(cur);
     }
-    if let Some(v) = fee_schedule { c.fee_schedule = Some(v); }
-    if let Some(v) = notes { c.notes = Some(v); }
-    if let Some(v) = template { c.default_template = Some(v); }
+    if let Some(v) = args.fee_schedule.as_deref() {
+        c.fee_schedule = Some(validate_choice(
+            "--fee-schedule",
+            v,
+            &["on-completion", "monthly", "on-milestone", "upon-invoice"],
+        )?);
+    }
+    if !args.terms.is_empty() {
+        let mut terms: serde_json::Map<String, Value> =
+            c.terms_json.parse::<Value>().ok()
+                .and_then(|v| v.as_object().cloned())
+                .unwrap_or_default();
+        for spec in &args.terms {
+            let (k, v) = parse_term_kv(spec)?;
+            terms.insert(k, Value::String(v));
+        }
+        c.terms_json = Value::Object(terms).to_string();
+    }
+    if let Some(v) = args.notes { c.notes = Some(v); }
+    if let Some(v) = args.template {
+        if !crate::typst_assets::has_template(&v)? {
+            return Err(AppError::InvalidInput(format!(
+                "template '{v}' not found. Run: contract template list"
+            )));
+        }
+        c.default_template = Some(v);
+    }
     db::contract_update_draft(&conn, &c)?;
     let saved = db::contract_get(&conn, &number)?;
     print_success(ctx, &saved, |s| println!("updated draft '{}'", s.number));
@@ -479,24 +550,63 @@ fn cmd_render(args: ContractRenderArgs, ctx: Ctx) -> Result<()> {
 
 // ─── mark / sign ──────────────────────────────────────────────────────────
 
+const STATUSES: &[&str] = &["draft", "sent", "signed", "active", "expired", "terminated"];
+
+/// Legal lifecycle moves. Forward-only, except sent→draft (recall an unsigned
+/// draft). Reopening an executed contract would unlock clause edits on a
+/// document the counterparty already signed, so it is refused.
+fn transition_allowed(from: &str, to: &str) -> bool {
+    let idx = |s: &str| STATUSES.iter().position(|x| *x == s).unwrap_or(0);
+    if from == to {
+        return true;
+    }
+    match (from, to) {
+        ("sent", "draft") => true,
+        ("draft", _) | ("sent", _) => idx(to) > idx(from),
+        ("signed", "active" | "expired" | "terminated") => true,
+        ("active", "expired" | "terminated") => true,
+        _ => false,
+    }
+}
+
 fn cmd_mark(number: &str, status: &str, ctx: Ctx) -> Result<()> {
+    let status = validate_choice("status", status, STATUSES)?;
     let conn = db::open()?;
-    db::contract_set_status(&conn, number, status)?;
+    let current = db::contract_get_or_404(&conn, number)?;
+    if !transition_allowed(&current.status, &status) {
+        return Err(AppError::InvalidInput(format!(
+            "cannot mark '{}' {} → {} (executed contracts only move forward: signed → active → expired/terminated)",
+            number, current.status, status
+        )));
+    }
+    db::contract_set_status(&conn, number, &status)?;
     let c = db::contract_get(&conn, number)?;
     print_success(ctx, &c, |c| println!("'{}' → {}", c.number, c.status));
     Ok(())
 }
 
 fn cmd_sign(args: SignArgs, ctx: Ctx) -> Result<()> {
+    let side = validate_choice("--side", &args.side, &["us", "them"])?;
     let conn = db::open()?;
+    let existing = db::contract_get_or_404(&conn, &args.number)?;
+    let already = match side.as_str() {
+        "us" => existing.signed_by_us_name.is_some(),
+        _ => existing.signed_by_them_name.is_some(),
+    };
+    if already && !args.force {
+        return Err(AppError::InvalidInput(format!(
+            "'{}' already has a recorded {} signature. Pass --force to overwrite it.",
+            args.number, side
+        )));
+    }
     let date_iso = match args.date {
         Some(s) => parse_date(&s)?,
-        None => Utc::now().date_naive().format("%Y-%m-%d").to_string(),
+        None => chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
     };
     let c = db::contract_record_signature(
         &conn,
         &args.number,
-        &args.side,
+        &side,
         &args.name,
         args.title.as_deref(),
         &date_iso,
@@ -504,7 +614,7 @@ fn cmd_sign(args: SignArgs, ctx: Ctx) -> Result<()> {
     print_success(ctx, &c, |c| {
         println!(
             "recorded {} signature on '{}'. Status: {}.",
-            args.side, c.number, c.status
+            side, c.number, c.status
         );
     });
     Ok(())
@@ -533,9 +643,9 @@ fn cmd_duplicate(
         Some(slug) => db::client_by_slug(&conn, &slug)?.id,
         None => src.client_id,
     };
-    let year = Utc::now().year();
+    let year = chrono::Local::now().year();
     let new_number = db::next_contract_number(&conn, &issuer, year, &src.kind)?;
-    let today = Utc::now().date_naive().format("%Y-%m-%d").to_string();
+    let today = chrono::Local::now().date_naive().format("%Y-%m-%d").to_string();
     let new_contract = Contract {
         id: 0,
         number: new_number.clone(),
@@ -544,7 +654,9 @@ fn cmd_duplicate(
         client_id,
         title: src.title.clone(),
         effective_date: today,
-        end_date: src.end_date.clone(),
+        // A copied absolute end date would predate the new effective date;
+        // keep relative terms, drop absolute ones for the user to re-set.
+        end_date: None,
         term_months: src.term_months,
         governing_law: src.governing_law.clone(),
         venue: src.venue.clone(),

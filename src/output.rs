@@ -33,6 +33,28 @@ impl Ctx {
     }
 }
 
+/// Serialize without ever panicking or emitting invalid JSON. A payload that
+/// fails to serialize degrades to an error envelope rather than a crash.
+fn safe_json_string<T: serde::Serialize>(value: &T) -> String {
+    match serde_json::to_string_pretty(value) {
+        Ok(s) => s,
+        Err(e) => {
+            let fallback = serde_json::json!({
+                "version": "1",
+                "status": "error",
+                "error": {
+                    "code": "serialize",
+                    "message": e.to_string(),
+                    "suggestion": "Retry the command",
+                },
+            });
+            serde_json::to_string_pretty(&fallback).unwrap_or_else(|_| {
+                r#"{"version":"1","status":"error","error":{"code":"serialize","message":"serialization failed","suggestion":"Retry the command"}}"#.to_string()
+            })
+        }
+    }
+}
+
 pub fn print_success<T, F>(ctx: Ctx, data: &T, human: F)
 where
     T: serde::Serialize,
@@ -45,7 +67,7 @@ where
                 "status": "success",
                 "data": data,
             });
-            println!("{}", serde_json::to_string_pretty(&envelope).unwrap());
+            println!("{}", safe_json_string(&envelope));
         }
         Format::Human if !ctx.quiet => human(data),
         Format::Human => {}
@@ -64,7 +86,7 @@ pub fn print_error(format: Format, err: &AppError) {
                     "suggestion": err.suggestion(),
                 },
             });
-            eprintln!("{}", serde_json::to_string_pretty(&envelope).unwrap());
+            eprintln!("{}", safe_json_string(&envelope));
         }
         Format::Human => {
             eprintln!("error: {}", err);
@@ -77,5 +99,16 @@ pub fn print_error(format: Format, err: &AppError) {
 }
 
 pub fn print_raw<T: serde::Serialize>(value: &T) {
-    println!("{}", serde_json::to_string_pretty(value).unwrap());
+    println!("{}", safe_json_string(value));
+}
+
+/// Help / version text requested while piped: wrap in the success envelope so
+/// `contract --help | jq` parses. Informational requests always exit 0.
+pub fn print_help_envelope(text: &str) {
+    let envelope = serde_json::json!({
+        "version": "1",
+        "status": "success",
+        "data": { "usage": text },
+    });
+    println!("{}", safe_json_string(&envelope));
 }

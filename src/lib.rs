@@ -8,6 +8,7 @@ pub mod commands;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod kinds;
 pub mod output;
 pub mod render;
 pub mod typst_assets;
