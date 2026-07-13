@@ -303,17 +303,41 @@ fn parse_fee(spec: &str) -> Result<(String, i64, String)> {
             parts[2]
         )));
     }
-    let amount_major: f64 = parts[1].parse().map_err(|_| {
-        AppError::InvalidInput(format!("invalid fee amount '{}': must be a number", parts[1]))
-    })?;
-    if !amount_major.is_finite() || amount_major <= 0.0 {
-        return Err(AppError::InvalidInput(format!(
-            "invalid fee amount '{}': must be a positive number",
-            parts[1]
-        )));
-    }
-    let amount_minor = (amount_major * 100.0).round() as i64;
+    let amount_minor = parse_amount_minor(parts[1])?;
     Ok((kind, amount_minor, currency))
+}
+
+/// Parse a decimal money amount into integer minor units with checked
+/// arithmetic — no f64, so no silent overflow saturation or cent drift.
+/// Accepts "8400", "8400.5", "8400.50"; rejects sub-cent precision,
+/// exponents, separators, zero, and negatives.
+fn parse_amount_minor(text: &str) -> Result<i64> {
+    let bad = |why: &str| AppError::InvalidInput(format!("invalid fee amount '{text}': {why}"));
+    let t = text.trim();
+    let (int_part, frac_part) = match t.split_once('.') {
+        Some((i, f)) => (i, f),
+        None => (t, ""),
+    };
+    if int_part.is_empty() || !int_part.chars().all(|c| c.is_ascii_digit()) {
+        return Err(bad("must be a plain positive number like 8400 or 8400.50"));
+    }
+    if frac_part.len() > 2 || !frac_part.chars().all(|c| c.is_ascii_digit()) {
+        return Err(bad("at most two decimal places (whole cents)"));
+    }
+    let whole: i64 = int_part.parse().map_err(|_| bad("too large"))?;
+    let cents: i64 = match frac_part.len() {
+        0 => 0,
+        1 => frac_part.parse::<i64>().unwrap_or(0) * 10,
+        _ => frac_part.parse::<i64>().unwrap_or(0),
+    };
+    let minor = whole
+        .checked_mul(100)
+        .and_then(|w| w.checked_add(cents))
+        .ok_or_else(|| bad("too large"))?;
+    if minor <= 0 {
+        return Err(bad("must be positive"));
+    }
+    Ok(minor)
 }
 
 /// Validate a repeatable --term key=value flag into (key, value).
@@ -552,21 +576,21 @@ fn cmd_render(args: ContractRenderArgs, ctx: Ctx) -> Result<()> {
 
 const STATUSES: &[&str] = &["draft", "sent", "signed", "active", "expired", "terminated"];
 
-/// Legal lifecycle moves. Forward-only, except sent→draft (recall an unsigned
-/// draft). Reopening an executed contract would unlock clause edits on a
-/// document the counterparty already signed, so it is refused.
+/// Legal lifecycle moves, as explicit edges. sent→draft recalls an unsigned
+/// draft; everything after signing only moves forward — reopening an executed
+/// contract would unlock clause edits on a document the counterparty already
+/// signed. No stage-skipping (a draft cannot jump straight to active).
 fn transition_allowed(from: &str, to: &str) -> bool {
-    let idx = |s: &str| STATUSES.iter().position(|x| *x == s).unwrap_or(0);
     if from == to {
         return true;
     }
-    match (from, to) {
-        ("sent", "draft") => true,
-        ("draft", _) | ("sent", _) => idx(to) > idx(from),
-        ("signed", "active" | "expired" | "terminated") => true,
-        ("active", "expired" | "terminated") => true,
-        _ => false,
-    }
+    matches!(
+        (from, to),
+        ("draft", "sent" | "signed")
+            | ("sent", "draft" | "signed")
+            | ("signed", "active" | "expired" | "terminated")
+            | ("active", "expired" | "terminated")
+    )
 }
 
 fn cmd_mark(number: &str, status: &str, ctx: Ctx) -> Result<()> {

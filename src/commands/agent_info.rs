@@ -16,6 +16,10 @@ fn opt(name: &str, ty: &str, desc: &str) -> serde_json::Value {
     json!({ "name": name, "type": ty, "required": false, "description": desc })
 }
 
+fn req_opt(name: &str, ty: &str, desc: &str) -> serde_json::Value {
+    json!({ "name": name, "type": ty, "required": true, "description": desc })
+}
+
 fn cmd(desc: &str, aliases: &[&str], args: Vec<serde_json::Value>, options: Vec<serde_json::Value>) -> serde_json::Value {
     let mut v = json!({ "description": desc, "args": args, "options": options });
     if !aliases.is_empty() {
@@ -55,9 +59,9 @@ pub fn run(_ctx: Ctx) -> Result<()> {
     };
 
     let new_opts = vec![
-        opt("--kind", "string", "nda | ncnda | consulting | msa | sow | service | loan (required)"),
+        req_opt("--kind", "string", "nda | ncnda | consulting | msa | sow | service | loan"),
         opt("--as", "string", "Issuer slug (your side); falls back to client default, then config"),
-        opt("--client", "string", "Client slug (counterparty; required)"),
+        req_opt("--client", "string", "Client slug (counterparty)"),
         opt("--title", "string", "Contract title (defaults per kind)"),
         opt("--effective", "string", "Effective date YYYY-MM-DD (default today)"),
         opt("--end", "string", "End date YYYY-MM-DD (mutually exclusive with --term-months)"),
@@ -91,7 +95,11 @@ pub fn run(_ctx: Ctx) -> Result<()> {
 
     let commands = json!({
         "issuer add": cmd("Register an issuer (your side; shared with invoice-cli)", &["issuer new"], slug("Issuer slug"), entity_opts(true)),
-        "issuer edit": cmd("Update issuer fields", &[], slug("Issuer slug"), entity_opts(true)),
+        "issuer edit": cmd("Update issuer fields", &[], slug("Issuer slug"), {
+            let mut o = entity_opts(true);
+            o.push(opt("--logo-clear", "bool", "Remove the stored logo"));
+            o
+        }),
         "issuer list": cmd("List issuers (shared with invoice-cli)", &["issuer ls"], vec![], vec![]),
         "issuer show": cmd("Show one issuer", &["issuer get"], slug("Issuer slug"), vec![]),
         "issuer delete": cmd("Delete an issuer", &["issuer rm"], slug("Issuer slug"), vec![]),
@@ -127,8 +135,8 @@ pub fn run(_ctx: Ctx) -> Result<()> {
             arg("status", "string", true, "Target status"),
         ], vec![]),
         "sign": cmd("Record one party's signature; auto-bumps to signed when both sides sign", &["contracts sign"], number(), vec![
-            opt("--side", "string", "us | them (required)"),
-            opt("--name", "string", "Signer full name (required)"),
+            req_opt("--side", "string", "us | them"),
+            req_opt("--name", "string", "Signer full name"),
             opt("--title", "string", "Signer title"),
             opt("--date", "string", "Signature date YYYY-MM-DD (default today)"),
             opt("--force", "bool", "Overwrite an already-recorded signature"),

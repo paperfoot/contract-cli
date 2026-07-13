@@ -304,7 +304,17 @@ fn deliverables_block(terms: &serde_json::Value) -> String {
 fn esc_markup(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
-        if matches!(c, '\\' | '#' | '*' | '_' | '`' | '$' | '<' | '>' | '@' | '[' | ']' | '~' | '/' | '-') {
+        // Line separators would let a field start a fresh markup line where
+        // `=` (heading), `+`/`-` (lists) become structural — flatten them.
+        if matches!(c, '\n' | '\r' | '\u{2028}' | '\u{2029}') {
+            out.push(' ');
+            continue;
+        }
+        if matches!(
+            c,
+            '\\' | '#' | '*' | '_' | '`' | '$' | '<' | '>' | '@' | '[' | ']' | '~' | '/' | '-'
+                | '=' | '+'
+        ) {
             out.push('\\');
         }
         out.push(c);
