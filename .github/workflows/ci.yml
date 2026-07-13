@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: contract-cli
+      - uses: actions/checkout@v4
+        with:
+          repository: paperfoot/finance-core
+          path: finance-core
+          token: ${{ secrets.FINANCE_CORE_TOKEN || github.token }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contract-cli
+      - name: Tests
+        working-directory: contract-cli
+        run: cargo test --release
+      - name: Conformance (agent-cli-framework)
+        working-directory: contract-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/paperfoot/agent-cli-framework/main/conformance/conformance.sh -o /tmp/conformance.sh
+          chmod +x /tmp/conformance.sh
+          /tmp/conformance.sh ./target/release/contract
