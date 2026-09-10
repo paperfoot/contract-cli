@@ -185,7 +185,16 @@ pub fn run(_ctx: Ctx) -> Result<()> {
             "string",
             "Template override (see: template list)",
         ),
-        opt("--paper", "string", "a4 | us-letter (default a4)"),
+        opt(
+            "--paper",
+            "string",
+            "a4 | a5 | a3 | us-letter | us-legal | us-executive (default a4)",
+        ),
+        opt(
+            "--reference",
+            "string",
+            "Show the contract reference in running page furniture: on | off (default on)",
+        ),
         opt("--out", "string", "Output PDF path"),
         opt("--open", "bool", "Open the PDF after rendering"),
         opt("--draft", "bool", "Force the DRAFT watermark"),
@@ -288,7 +297,8 @@ pub fn run(_ctx: Ctx) -> Result<()> {
         "template preview": cmd("Render a sample contract PDF with synthetic data", &[], vec![arg("name", "string", true, "Template name")], vec![
             opt("--kind", "string", "Contract kind to preview (default consulting)"),
             opt("--pack", "string", "Clause pack to preview (default standard)"),
-            opt("--paper", "string", "a4 | us-letter (default a4)"),
+            opt("--paper", "string", "a4 | a5 | a3 | us-letter | us-legal | us-executive (default a4)"),
+            opt("--reference", "string", "Show the contract reference in running page furniture: on | off (default on)"),
             opt("--out", "string", "Output path"),
         ]),
         "kinds list": cmd("List contract kinds with descriptions and trigger tags", &["kinds ls", "kind list"], vec![], vec![]),

@@ -675,6 +675,7 @@ fn cmd_render(args: ContractRenderArgs, ctx: Ctx) -> Result<()> {
         args.final_render,
     )?;
     data.paper = args.paper;
+    data.show_reference = args.reference == "on";
     render::render_to_pdf(&template, &mut data, &issuer, &out_path)?;
 
     if args.open {

@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#342F28"), paper: rgb("#FBF8F1"), accent: rgb("#87513E"),
   mute: rgb("#696052"), hair: rgb("#D9CDBF"), watermark: rgb("#EEECE8"),
-  display-font: "Literata", body-font: "Literata", body-size: 11.25pt, title-weight: 500,
+  display-font: "Literata", body-font: "Literata", body-size: 11pt, title-weight: 500,
 )
 #modern-contract(theme, character: "marrakech")

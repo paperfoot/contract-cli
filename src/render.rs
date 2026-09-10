@@ -29,9 +29,11 @@ pub struct ContractRenderData {
     /// Services Agreement", "Mutual Non-Disclosure Agreement"). This is
     /// what real contracts put at the top, not the kind tag from the CLI.
     pub kind_label: String,
-    /// Internal reference code (CTR-..., NDA-...). Rendered only in the
-    /// page footer at small size for filing purposes — never on the body.
+    /// Internal reference code (CTR-..., NDA-...). This identity is always
+    /// retained in the data even when its running-furniture display is hidden.
     pub number: String,
+    /// Whether running page furniture should display the internal reference.
+    pub show_reference: bool,
     /// User-supplied contract title (e.g. project name). Rendered as a
     /// subtitle UNDER the formal kind-label *only* when the user gave a
     /// meaningful title (i.e. not the auto-generated "Kind — A × B").
@@ -771,6 +773,7 @@ pub fn build_render_data(
         paper: "a4".into(),
         kind_label: kind_label(&contract.kind, &terms),
         number: contract.number.clone(),
+        show_reference: true,
         subtitle,
         effective_date_display: fmt_date(&contract.effective_date),
         end_date_display: contract.end_date.as_deref().map(fmt_date),

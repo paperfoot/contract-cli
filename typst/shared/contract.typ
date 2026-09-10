@@ -372,7 +372,7 @@
   pad(left: 8mm, top: 4mm)[
     #set text(font: theme.body-font, size: 8.5pt, fill: theme.mute)
     #grid(columns: (1fr, auto), column-gutter: 5mm,
-      [#data.kind-label], [#data.number])
+      [#data.kind-label], if data.at("show-reference", default: true) { [#data.number] } else { [] })
   ]
 }
 
@@ -381,7 +381,7 @@
   pad(left: 8mm, bottom: 4mm)[
     #set text(font: theme.body-font, size: 8.5pt, fill: theme.mute)
     #grid(columns: (1fr, auto), column-gutter: 5mm,
-      [#data.number],
+      if data.at("show-reference", default: true) { [#data.number] } else { [] },
       context [#here().page() / #counter(page).final().first()],
     )
   ]

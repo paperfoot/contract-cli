@@ -79,6 +79,7 @@ pub fn run(cmd: TemplateCmd, ctx: Ctx) -> Result<()> {
             out,
             pack: pack_slug,
             paper,
+            reference,
         } => {
             let issuer = sample_issuer();
             let client = sample_client();
@@ -109,6 +110,7 @@ pub fn run(cmd: TemplateCmd, ctx: Ctx) -> Result<()> {
                 true,
             )?;
             data.paper = paper;
+            data.show_reference = reference == "on";
             let out_path = PathBuf::from(render::expand_tilde(
                 &out.unwrap_or_else(|| format!("preview-{name}-{kind}.pdf")),
             ));

@@ -7,7 +7,7 @@ Shares issuers and clients with [invoice-cli](https://github.com/paperfoot/invoi
 ## What is included
 
 - Seven kinds: NDA, NCNDA, consulting, MSA, SOW, service and loan.
-- Ten PDF templates, with A4 and US Letter output. New **folio** for technology and startups, **counsel** for restrained legal typography, and **atelier** for design engagements.
+- Ten PDF templates, with A4 by default plus A3, A5, US Letter, Legal and Executive output. New **folio** for technology and startups, **counsel** for restrained legal typography, and **atelier** for design engagements.
 - Standard clause packs plus `consulting/technology`, `consulting/design` and `msa/startup`.
 - Explicit `global`, `uk`, `us` and `singapore` legal profiles.
 - Draft editing, clause composition, lifecycle controls and administrative signature records.
@@ -55,8 +55,12 @@ contract new --kind consulting --as acme --client meridian \
 # Use the number returned by new. Draft PDFs carry a DRAFT watermark.
 contract render CTR-acme-2026-0001 --open
 # A clean signing copy; this does not send or sign the document.
-contract render CTR-acme-2026-0001 --final --paper us-letter
+contract render CTR-acme-2026-0001 --final --paper us-letter --reference off
 ```
+
+`--reference on|off` controls the internal reference printed in headers and footers (default: on). Page numbers remain visible. Paper changes reflow the document without scaling down its fonts.
+
+The [typography specification](docs/TYPOGRAPHY.md) records the source guidance, actual font sizes, baseline spacing, page dimensions and review method.
 
 ## Choose the governing law
 

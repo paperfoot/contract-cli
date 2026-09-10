@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#202722"), paper: rgb("#FFFFFF"), accent: rgb("#33483E"),
   mute: rgb("#58615B"), hair: rgb("#CCD3CE"), watermark: rgb("#EEECE8"),
-  display-font: "Libre Franklin", body-font: "Libre Franklin", body-size: 11.25pt, title-weight: 500,
+  display-font: "Libre Franklin", body-font: "Libre Franklin", body-size: 10.5pt, title-weight: 500,
 )
 #modern-contract(theme, character: "folio")

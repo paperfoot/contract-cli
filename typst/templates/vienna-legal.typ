@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#302B27"), paper: rgb("#FCFAF5"), accent: rgb("#8A4D38"),
   mute: rgb("#665D55"), hair: rgb("#D6CEC3"), watermark: rgb("#EEECE8"),
-  display-font: "Libre Franklin", body-font: "Libre Franklin", body-size: 11.25pt, title-weight: 500,
+  display-font: "Libre Franklin", body-font: "Libre Franklin", body-size: 10.5pt, title-weight: 500,
 )
 #modern-contract(theme, character: "vienna-legal")

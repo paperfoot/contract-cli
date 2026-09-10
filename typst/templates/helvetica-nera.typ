@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#202020"), paper: rgb("#FFFFFF"), accent: rgb("#202020"),
   mute: rgb("#5A5A5A"), hair: rgb("#CCCCCC"), watermark: rgb("#EEECE8"),
-  display-font: "Archivo", body-font: "Archivo", body-size: 11.25pt, title-weight: 500,
+  display-font: "Archivo", body-font: "Archivo", body-size: 10.5pt, title-weight: 500,
 )
 #modern-contract(theme, character: "helvetica-nera")

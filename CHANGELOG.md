@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- Retune every document for quieter print typography: 20 pt titles, optically adjusted 10.5–11.5 pt body text, true 145% baseline spacing, 7 pt extra paragraph separation and a centred 140 mm reading column. Record online typography and reading-research sources in `docs/TYPOGRAPHY.md`.
+- Correct Archivo font metadata using the upstream regular, medium and semibold faces.
+- Keep A4 as default and add A3, A5, US Legal and Executive alongside Letter. Reflow small paper with stacked party details and signatures; retain a comfortable reading measure on large sheets.
+- Add `--reference on|off` to rendering and template previews, independently of pagination and the stored document identity.
+- Verify all paper sizes across all templates, physical page dimensions, reference visibility and isolated CLI parsing.
+
 ## 0.3.0
 
 - Rebuild all ten PDF templates around a shared reading grid, optically sized bundled fonts, hanging clause numbers, deliberate paragraph/list spacing, readable running furniture and consistent signature fields. Keep list introductions with their first item and short list items intact across page breaks.

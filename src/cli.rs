@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 
+pub const PAPER_SIZES: [&str; 6] = ["a4", "a5", "a3", "us-letter", "us-legal", "us-executive"];
+pub const REFERENCE_VISIBILITY: [&str; 2] = ["on", "off"];
+
 const HELP_FOOTER: &str = "\
 Tips:
   • Run `contract agent-info | jq` for the full capability manifest (commands, flags, exit codes)
@@ -362,9 +365,12 @@ pub struct ContractRenderArgs {
     /// Output path (defaults to issuer default_output_dir / ./contract-<number>.pdf)
     #[arg(long, short)]
     pub out: Option<String>,
-    /// Page size: a4 or us-letter
-    #[arg(long, value_parser = ["a4", "us-letter"], default_value = "a4")]
+    /// Page size: a4, a5, a3, us-letter, us-legal, or us-executive
+    #[arg(long, value_parser = PAPER_SIZES, default_value = "a4")]
     pub paper: String,
+    /// Show the contract reference in running page furniture
+    #[arg(long, value_parser = REFERENCE_VISIBILITY, default_value = "on")]
+    pub reference: String,
     /// Open the PDF after rendering
     #[arg(long)]
     pub open: bool,
@@ -559,8 +565,11 @@ pub enum TemplateCmd {
         /// Clause pack to preview
         #[arg(long, default_value = "standard")]
         pack: String,
-        #[arg(long, value_parser = ["a4", "us-letter"], default_value = "a4")]
+        #[arg(long, value_parser = PAPER_SIZES, default_value = "a4")]
         paper: String,
+        /// Show the contract reference in running page furniture
+        #[arg(long, value_parser = REFERENCE_VISIBILITY, default_value = "on")]
+        reference: String,
         /// Which contract kind to preview (default consulting)
         #[arg(long, default_value = "consulting")]
         kind: String,

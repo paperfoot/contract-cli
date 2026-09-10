@@ -4,6 +4,12 @@
 // supply font character and colour; they cannot change the document geometry.
 #let gutter = 8mm
 #let quiet(theme, body) = text(size: 9.5pt, fill: theme.mute, body)
+#let paper-widths = (a3: 297mm, a4: 210mm, a5: 148mm,
+  us-letter: 8.5in, us-legal: 8.5in, us-executive: 7.25in)
+#let paper-width = paper-widths.at(data.at("paper", default: "a4"), default: 210mm)
+#let narrow = paper-width < 170mm
+#let body-width = calc.min(140mm, paper-width - 36mm)
+#let side-margin = (paper-width - body-width) / 2
 
 #let party-details(party, theme) = {
   set par(leading: 4pt, spacing: 7pt)
@@ -32,12 +38,12 @@
       },
     )
   }
-  let party(prefix) = {
+  let party(prefix, name-height: auto) = {
     let get(key) = sig.at(prefix + key, default: none)
     set par(leading: 4pt, spacing: 7pt)
     quiet(theme, "Signed by / for")
     v(5pt)
-    text(weight: 600)[#get("-name")]
+    block(height: name-height, width: 100%)[#text(weight: 600)[#get("-name")]]
     v(15mm)
     line(length: 100%, stroke: 0.45pt + theme.mute)
     v(4pt)
@@ -47,37 +53,59 @@
     field("Title", get("-signer-title"))
     field("Date", get("-signer-date"))
   }
-  block(breakable: false, above: 24pt)[
-    #text(size: th(theme, "body-size", 11.25pt) + 1pt, weight: 600)[Agreement and signatures]
+  let introduction = [
+    #block(sticky: true)[#text(size: th(theme, "body-size", 11pt) + 0.5pt, weight: 600)[Agreement and signatures]]
     #v(8pt)
     #text(size: 10.5pt)[The parties agree to the terms set out above.]
     #v(18pt)
-    #grid(columns: (1fr, 1fr), column-gutter: 12mm, party("our"), party("their"))
+  ]
+  block(breakable: narrow, above: 24pt)[
+    #if narrow {
+      block(breakable: false)[#introduction#party("our")]
+      v(18pt)
+      block(breakable: false, party("their"))
+    } else {
+      introduction
+      layout(size => {
+        let column-width = (size.width - 12mm) / 2
+        let name-height = calc.max(..("our", "their").map(prefix => measure([
+          #set par(leading: 4pt, spacing: 7pt)
+          #text(weight: 600)[#sig.at(prefix + "-name")]
+        ], width: column-width).height))
+        grid(columns: (1fr, 1fr), column-gutter: 12mm,
+          party("our", name-height: name-height), party("their", name-height: name-height))
+      })
+    }
   ]
 }
 
 #let modern-contract(theme, character: "folio") = {
-  let body-size = th(theme, "body-size", 11.25pt)
+  let body-size = th(theme, "body-size", 11pt)
   set text(font: theme.body-font, size: body-size, fill: theme.ink,
+    weight: 400, stretch: 100%, top-edge: 0.8em, bottom-edge: -0.2em,
     lang: "en", hyphenate: false, number-type: "lining")
-  // Both values measure ink-to-ink gaps. Six extra points between paragraphs
-  // create separation without the contradictory use of first-line indents.
-  let line-gap = if theme.body-font == "Literata" { 6.5pt } else { 5.5pt }
-  set par(leading: line-gap, spacing: line-gap + 6pt, justify: false, first-line-indent: 0pt)
+  // Typst leading is an edge-to-edge gap, not a baseline distance. Explicit
+  // one-em line frames give every body face true 145% baseline spacing.
+  // Paragraphs add 7 pt of separation, independently of the font's metrics.
+  set par(leading: 0.45em, spacing: 0.45em + 7pt,
+    justify: false, first-line-indent: 0pt)
   set list(indent: 1mm, body-indent: 3mm, spacing: 8pt)
   set enum(indent: 1mm, body-indent: 3mm, spacing: 8pt)
   set heading(numbering: none)
   show heading.where(level: 1): it => block(above: 0pt, below: 0pt, sticky: true)[
     #set par(leading: 5pt)
-    #text(font: theme.display-font, size: 27pt,
-      weight: th(theme, "title-weight", 500), tracking: -0.35pt)[#it.body]
+    #text(font: theme.display-font, size: 20pt,
+      weight: th(theme, "title-weight", 500), tracking: 0pt)[#it.body]
   ]
   show heading.where(level: 2): it => block(above: 19pt, below: 7pt, sticky: true)[
-    #text(size: body-size + 1pt, weight: 600)[#it.body]
+    #text(size: body-size + 0.5pt, weight: 600)[#it.body]
   ]
-  // Fixed margins also apply to Letter. The number gutter is outside the
-  // reading column, so one- and two-digit clauses share an identical axis.
-  let theme = theme + (margin: (top: 25mm, bottom: 25mm, left: 30mm, right: 30mm))
+  // The body is centred in a 140 mm reading column (35 mm margins on A4).
+  // Its 8 mm number gutter hangs outside, rather than narrowing the text.
+  // Smaller paper reflows at the same type size; larger paper never stretches
+  // the measure into overlong lines. Extra foot space balances the page.
+  let theme = theme + (margin: (top: if narrow { 18mm } else { 25mm },
+    bottom: if narrow { 22mm } else { 30mm }, left: side-margin - gutter, right: side-margin))
   page-shell(theme, pad(left: gutter)[
     #if data.logo != none {
       image(data.logo, width: 25mm, height: 11mm, fit: "contain")
@@ -89,10 +117,10 @@
     ]
     #if data.subtitle != none {
       v(10pt)
-      text(size: 12pt, fill: theme.mute)[#data.subtitle]
+      text(size: body-size, fill: theme.mute)[#data.subtitle]
     }
     #v(23pt)
-    #grid(columns: (1fr, 1fr), column-gutter: 12mm,
+    #grid(columns: if narrow { (1fr,) } else { (1fr, 1fr) }, column-gutter: 12mm, row-gutter: 14pt,
       party-details(data.our-party, theme), party-details(data.their-party, theme))
     #v(17pt)
     #hairline(theme, weight: 0.4pt)
@@ -119,7 +147,7 @@
         block(above: 19pt, layout(size => {
           let closing = [#clause-content(clause)#execution(theme)]
           let height = measure(closing, width: size.width).height
-          block(breakable: height > 180mm, closing)
+          block(breakable: narrow or height > 180mm, closing)
         }))
       } else { clause-content(clause) }
     }

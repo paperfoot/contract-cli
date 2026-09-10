@@ -39,6 +39,16 @@ KIND_MARKERS = {
     "loan": "borrower may repay the loan early, in whole or in part",
 }
 
+KIND_PREFIXES = {
+    "nda": "NDA",
+    "ncnda": "NCNDA",
+    "consulting": "CTR",
+    "msa": "MSA",
+    "sow": "SOW",
+    "service": "SVC",
+    "loan": "LOAN",
+}
+
 PACK_CASES = (
     (
         "consulting",
@@ -56,6 +66,19 @@ PACK_CASES = (
         "no equity, options, revenue share or success fee is granted",
     ),
 )
+
+POINTS_PER_MM = 72.0 / 25.4
+PAPER_DIMENSIONS = {
+    "a3": (297.0 * POINTS_PER_MM, 420.0 * POINTS_PER_MM),
+    "a4": (210.0 * POINTS_PER_MM, 297.0 * POINTS_PER_MM),
+    "a5": (148.0 * POINTS_PER_MM, 210.0 * POINTS_PER_MM),
+    "us-letter": (612.0, 792.0),
+    "us-legal": (612.0, 1008.0),
+    "us-executive": (522.0, 756.0),
+}
+NON_A4_PAPERS = ("a3", "a5", "us-letter", "us-legal", "us-executive")
+DIMENSION_TOLERANCE = 0.1
+GLYPH_OVERHANG_TOLERANCE = 2.0
 
 
 class SmokeFailure(RuntimeError):
@@ -118,10 +141,19 @@ def cli_json(binary: Path, env: dict[str, str], args: list[str]) -> object:
 
 
 def normalized(text: str) -> str:
-    return " ".join(unicodedata.normalize("NFKC", text).lower().split())
+    text = " ".join(unicodedata.normalize("NFKC", text).lower().split())
+    # A compound can wrap at its literal hyphen even with hyphenation off.
+    # Poppler inserts whitespace there; preserve the hyphen, join the word.
+    return re.sub(r"(?<=\w)-\s+(?=\w)", "-", text)
 
 
-def inspect_pdf(pdf: Path, pdftotext: str, markers: tuple[str, ...]) -> None:
+def inspect_pdf(
+    pdf: Path,
+    pdftotext: str,
+    markers: tuple[str, ...],
+    *,
+    paper: str = "a4",
+) -> tuple[str, tuple[str, ...]]:
     if not pdf.is_file():
         raise SmokeFailure(f"preview was not created: {pdf}")
     with pdf.open("rb") as handle:
@@ -132,22 +164,67 @@ def inspect_pdf(pdf: Path, pdftotext: str, markers: tuple[str, ...]) -> None:
     # joining words, otherwise a page number can falsely break a clause marker.
     result = run_checked([pdftotext, "-bbox", "-enc", "UTF-8", str(pdf), "-"])
     document = ET.fromstring(result.stdout)
-    body_words = []
-    for page in document.findall(".//{*}page"):
+    expected_width, expected_height = PAPER_DIMENSIONS[paper]
+    expected_width_mm = expected_width / POINTS_PER_MM
+    body_width = min(140.0 * POINTS_PER_MM, expected_width - 36.0 * POINTS_PER_MM)
+    body_left = (expected_width - body_width) / 2.0
+    body_right = body_left + body_width
+    body_top = (18.0 if expected_width_mm < 170.0 else 25.0) * POINTS_PER_MM
+    body_bottom = (22.0 if expected_width_mm < 170.0 else 30.0) * POINTS_PER_MM
+    grid_left = body_left - 8.0 * POINTS_PER_MM - GLYPH_OVERHANG_TOLERANCE
+    grid_right = body_right + GLYPH_OVERHANG_TOLERANCE
+
+    pages = document.findall(".//{*}page")
+    body_words: list[str] = []
+    all_words: list[str] = []
+    page_texts: list[str] = []
+    for page_number, page in enumerate(pages, start=1):
         width, height = float(page.attrib["width"]), float(page.attrib["height"])
+        if (
+            abs(width - expected_width) > DIMENSION_TOLERANCE
+            or abs(height - expected_height) > DIMENSION_TOLERANCE
+        ):
+            raise SmokeFailure(
+                f"{pdf.name} page {page_number} is {width:.3f} x {height:.3f} pt; "
+                f"expected {expected_width:.3f} x {expected_height:.3f} pt for {paper}"
+            )
+        page_words: list[str] = []
         for word in page.findall(".//{*}word"):
             x0, x1 = float(word.attrib["xMin"]), float(word.attrib["xMax"])
             y0, y1 = float(word.attrib["yMin"]), float(word.attrib["yMax"])
-            if 65 <= y0 and y1 <= height - 65:
-                if x0 < 65 or x1 > width - 80:
-                    raise SmokeFailure(f"text escapes the reading grid in {pdf.name}: {word.text!r}")
+            if x0 < -DIMENSION_TOLERANCE or x1 > width + DIMENSION_TOLERANCE:
+                raise SmokeFailure(
+                    f"text escapes page {page_number} horizontally in {pdf.name}: {word.text!r}"
+                )
+            if y0 < -DIMENSION_TOLERANCE or y1 > height + DIMENSION_TOLERANCE:
+                raise SmokeFailure(
+                    f"text escapes page {page_number} vertically in {pdf.name}: {word.text!r}"
+                )
+            all_words.append(word.text or "")
+            page_words.append(word.text or "")
+            if body_top - 4.0 <= y0 and y1 <= height - body_bottom + 4.0:
+                if x0 < grid_left or x1 > grid_right:
+                    raise SmokeFailure(
+                        f"text escapes the responsive reading grid on page {page_number} "
+                        f"in {pdf.name}: {word.text!r}"
+                    )
                 body_words.append(word.text or "")
+        page_text = normalized(" ".join(page_words))
+        if "agreement and signatures" in page_text and (
+            "signed by / for" not in page_text or "signature name" not in page_text
+        ):
+            raise SmokeFailure(
+                f"execution introduction is separated from the first signatory "
+                f"on page {page_number} in {pdf.name}"
+            )
+        page_texts.append(page_text)
     text = normalized(" ".join(body_words))
     if "{{" in text or "}}" in text:
         raise SmokeFailure(f"unresolved template variable in {pdf.name}")
     for marker in markers:
         if normalized(marker) not in text:
             raise SmokeFailure(f"missing clause text in {pdf.name}: {marker!r}")
+    return normalized(" ".join(all_words)), tuple(page_texts)
 
 
 def render_preview(
@@ -160,9 +237,10 @@ def render_preview(
     *,
     pack: str = "standard",
     paper: str = "a4",
+    reference: str = "on",
     extra_marker: str | None = None,
 ) -> Path:
-    filename = f"{template}-{kind}-{pack}-{paper}.pdf"
+    filename = f"{template}-{kind}-{pack}-{paper}-reference-{reference}.pdf"
     pdf = output_dir / filename
     cli_json(
         binary,
@@ -177,25 +255,21 @@ def render_preview(
             pack,
             "--paper",
             paper,
+            "--reference",
+            reference,
             "--out",
             str(pdf),
         ],
     )
     markers = (KIND_MARKERS[kind],) if extra_marker is None else (KIND_MARKERS[kind], extra_marker)
-    inspect_pdf(pdf, pdftotext, markers)
+    full_text, _ = inspect_pdf(pdf, pdftotext, markers, paper=paper)
+    expected_reference = f"{KIND_PREFIXES[kind]}-acme-2026-0001"
+    reference_present = normalized(expected_reference) in full_text
+    if reference == "on" and not reference_present:
+        raise SmokeFailure(f"preview reference is missing from {pdf.name}")
+    if reference == "off" and reference_present:
+        raise SmokeFailure(f"preview reference is visible despite --reference off in {pdf.name}")
     return pdf
-
-
-def check_us_letter(pdf: Path, pdfinfo: str) -> None:
-    result = run_checked([pdfinfo, str(pdf)])
-    match = re.search(r"^Page size:\s+([0-9.]+) x ([0-9.]+) pts", result.stdout, re.MULTILINE)
-    if not match:
-        raise SmokeFailure(f"pdfinfo did not report page dimensions for {pdf.name}")
-    width, height = (float(value) for value in match.groups())
-    if abs(width - 612.0) > 1.0 or abs(height - 792.0) > 1.0:
-        raise SmokeFailure(
-            f"{pdf.name} is {width:g} x {height:g} pt; expected US Letter 612 x 792 pt"
-        )
 
 
 def isolated_environment(root: Path) -> dict[str, str]:
@@ -217,7 +291,7 @@ def isolated_environment(root: Path) -> dict[str, str]:
     return env
 
 
-def check_custom_content(binary: Path, env: dict[str, str], pdftotext: str, root: Path) -> None:
+def check_custom_content(binary: Path, env: dict[str, str], pdftotext: str, root: Path) -> int:
     cli_json(binary, env, ["issuer", "add", "example", "--name", "Example Studio", "--jurisdiction", "uk", "--address", "1 Example Street"])
     cli_json(binary, env, ["clients", "add", "client", "--name", "Example Client", "--address", "2 Example Street"])
     record = cli_json(binary, env, ["new", "--kind", "nda", "--as", "example", "--client", "client", "--legal-profile", "us", "--us-state", "Delaware", "--purpose", "A synthetic render regression", "--notes", "PRIVATE_NOTE_SENTINEL"])
@@ -232,13 +306,74 @@ def check_custom_content(binary: Path, env: dict[str, str], pdftotext: str, root
     source = root / "clause.md"
     source.write_text(body)
     cli_json(binary, env, ["contracts", "clauses", "add", number, "regression", "--heading", "Additional terms", "--from-file", str(source)])
-    pdf = root / "custom.pdf"
-    cli_json(binary, env, ["render", number, "--template", "folio", "--final", "--out", str(pdf)])
-    inspect_pdf(pdf, pdftotext, tuple(markers + ["report or investigate a suspected violation of law"]))
-    contents = run_checked([pdftotext, str(pdf), "-"]).stdout
+    required_markers = tuple(
+        markers + ["report or investigate a suspected violation of law"]
+    )
+    reference_on_pdf = root / "custom-reference-on.pdf"
+    reference_off_pdf = root / "custom-reference-off.pdf"
+    cli_json(
+        binary,
+        env,
+        [
+            "render",
+            number,
+            "--template",
+            "folio",
+            "--final",
+            "--reference",
+            "on",
+            "--out",
+            str(reference_on_pdf),
+        ],
+    )
+    on_text, on_pages = inspect_pdf(
+        reference_on_pdf, pdftotext, required_markers, paper="a4"
+    )
+    cli_json(
+        binary,
+        env,
+        [
+            "render",
+            number,
+            "--template",
+            "folio",
+            "--final",
+            "--reference",
+            "off",
+            "--out",
+            str(reference_off_pdf),
+        ],
+    )
+    off_text, off_pages = inspect_pdf(
+        reference_off_pdf, pdftotext, required_markers, paper="a4"
+    )
+    normalized_number = normalized(number)
+    if normalized_number not in on_text:
+        raise SmokeFailure("--reference on omitted the real contract number")
+    if normalized_number in off_text:
+        raise SmokeFailure("--reference off left the real contract number in the PDF")
+    if len(on_pages) != len(off_pages):
+        raise SmokeFailure("reference visibility changed the real contract page count")
+
+    on_without_reference = normalized(on_text.replace(normalized_number, " "))
+    if on_without_reference != off_text:
+        raise SmokeFailure("reference visibility changed real contract clause text")
+    page_count = len(on_pages)
+    for page_number, (on_page, off_page) in enumerate(zip(on_pages, off_pages), start=1):
+        pagination = re.compile(rf"\b{page_number}\s*/\s*{page_count}\b")
+        if not pagination.search(on_page) or not pagination.search(off_page):
+            raise SmokeFailure(
+                f"reference visibility removed pagination from real contract page {page_number}"
+            )
+
+    shown = cli_json(binary, env, ["show", number])
+    if not isinstance(shown, dict) or shown.get("number") != number:
+        raise SmokeFailure("reference visibility changed the internally stored contract number")
+
+    contents = run_checked([pdftotext, str(reference_off_pdf), "-"]).stdout
     if "PRIVATE_NOTE_SENTINEL" in contents:
         raise SmokeFailure("private notes entered the PDF")
-    original = pdf.read_bytes()
+    original = reference_on_pdf.read_bytes()
 
     # Force a real compiler failure while preserving the existing destination.
     fake_bin = root / "fake-bin"
@@ -247,15 +382,16 @@ def check_custom_content(binary: Path, env: dict[str, str], pdftotext: str, root
     fake_typst.write_text("#!/bin/sh\nprintf 'synthetic compiler failure' >&2\nexit 1\n")
     fake_typst.chmod(0o755)
     failed_env = dict(env, PATH=str(fake_bin) + os.pathsep + env.get("PATH", ""))
-    failed = subprocess.run([str(binary), "--json", "render", number, "--template", "folio", "--final", "--out", str(pdf)], env=failed_env, capture_output=True, text=True)
-    if failed.returncode == 0 or pdf.read_bytes() != original or failed.stdout:
+    failed = subprocess.run([str(binary), "--json", "render", number, "--template", "folio", "--final", "--reference", "on", "--out", str(reference_on_pdf)], env=failed_env, capture_output=True, text=True)
+    if failed.returncode == 0 or reference_on_pdf.read_bytes() != original or failed.stdout:
         raise SmokeFailure("compiler failure replaced output or contaminated stdout")
     json.loads(failed.stderr)
 
     cli_json(binary, env, ["contracts", "clauses", "edit", number, "regression", "--body", "Required {{missing_term}}"])
-    failed = subprocess.run([str(binary), "--json", "render", number, "--template", "folio", "--final", "--out", str(pdf)], env=env, capture_output=True, text=True)
-    if failed.returncode != 3 or pdf.read_bytes() != original:
+    failed = subprocess.run([str(binary), "--json", "render", number, "--template", "folio", "--final", "--reference", "on", "--out", str(reference_on_pdf)], env=env, capture_output=True, text=True)
+    if failed.returncode != 3 or reference_on_pdf.read_bytes() != original:
         raise SmokeFailure("unresolved term did not block a clean render")
+    return 2
 
 
 def check_long_parties(
@@ -365,7 +501,6 @@ def main() -> int:
     binary = resolve_binary(args.binary)
     require_tool("typst")
     pdftotext = require_tool("pdftotext")
-    pdfinfo = shutil.which("pdfinfo")
 
     with tempfile.TemporaryDirectory(prefix="contract-cli-pdf-smoke-") as temporary:
         root = Path(temporary)
@@ -388,6 +523,29 @@ def main() -> int:
                 render_preview(binary, env, pdftotext, output_dir, template, kind)
                 rendered += 1
 
+        for template in sorted(templates):
+            for paper in NON_A4_PAPERS:
+                render_preview(
+                    binary,
+                    env,
+                    pdftotext,
+                    output_dir,
+                    template,
+                    "consulting",
+                    paper=paper,
+                    reference="off",
+                )
+                rendered += 1
+
+        # These closing clauses previously stranded the execution introduction
+        # on the preceding A5 page, away from both signatories.
+        for template, kind in (("counsel", "nda"), ("folio", "ncnda")):
+            render_preview(
+                binary, env, pdftotext, output_dir, template, kind,
+                paper="a5", reference="off",
+            )
+            rendered += 1
+
         for kind, pack, marker in PACK_CASES:
             render_preview(
                 binary,
@@ -401,27 +559,15 @@ def main() -> int:
             )
             rendered += 1
 
-        letter_pdf = render_preview(
-            binary,
-            env,
-            pdftotext,
-            output_dir,
-            "folio",
-            "consulting",
-            paper="us-letter",
-        )
-        rendered += 1
-        if pdfinfo:
-            check_us_letter(letter_pdf, pdfinfo)
-        check_custom_content(binary, env, pdftotext, root)
-        rendered += 1
+        rendered += check_custom_content(binary, env, pdftotext, root)
         rendered += check_long_parties(binary, env, pdftotext, output_dir)
 
-    dimension_status = "checked" if pdfinfo else "skipped (pdfinfo unavailable)"
     print(
         f"OK: {rendered} PDFs; 10 templates x 7 kinds, 3 pack previews, "
-        f"1 US Letter ({dimension_status}), 1 long custom document, "
-        f"2 long-party final documents; failure/notes checks passed"
+        f"10 templates x 5 non-A4 sizes with references off, "
+        f"2 A5 execution regressions, "
+        f"2 reference-state long custom documents, 2 long-party final documents; "
+        f"dimensions, pagination, execution, failure and notes checks passed"
     )
     return 0
 
