@@ -214,6 +214,18 @@ fn term_text(c: &Contract) -> String {
 }
 
 fn term_short(c: &Contract) -> String {
+    if c.kind == "loan" {
+        return serde_json::from_str::<serde_json::Value>(&c.terms_json)
+            .ok()
+            .and_then(|terms| {
+                terms
+                    .get("repayment_date")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_owned)
+            })
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "See repayment clause".into());
+    }
     if let Some(end) = &c.end_date {
         // Compact date — use "%-d %b %Y" so "1 Jul 2026" not "1 July 2026"
         NaiveDate::parse_from_str(end, "%Y-%m-%d")
@@ -281,7 +293,7 @@ fn ip_assignment_text(terms: &serde_json::Value, our: &str, their: &str) -> Stri
         _ => format!("The {our} retains ownership of the Deliverables. On payment of the applicable fees, the {their} receives a non-exclusive, perpetual, worldwide, royalty-free licence to use and adapt the Deliverables for its internal business purposes, and to allow service providers to do so on its behalf. Resale, sublicensing for third-party use and public distribution require an express written licence."),
     };
     format!(
-        "{disposition}\n\nEach party retains its pre-existing or independently developed tools, libraries, methods and know-how (‘Background IP’). On payment, the {our} grants the {their} a non-exclusive, perpetual, worldwide, royalty-free licence to use, reproduce and adapt its Background IP incorporated into Deliverables, and to permit its customers and service providers to use it, solely as needed for the agreed use of those Deliverables. Third-party materials remain subject to disclosed third-party licences. Moral rights are waived only to the extent lawfully permitted and expressly agreed in writing by the relevant rights holder; otherwise necessary consents shall be obtained."
+        "{disposition}\n\nEach party retains its pre-existing or independently developed tools, libraries, methods and know-how (‘Background IP’). On payment, the {our} grants the {their} a non-exclusive, perpetual, worldwide, royalty-free licence to use, reproduce and adapt its Background IP incorporated into Deliverables, and to permit its customers and service providers to use it, solely as needed for the agreed use of those Deliverables. Third-party materials remain subject to disclosed third-party licences.\n\nMoral rights are waived only to the extent lawfully permitted and expressly agreed in writing by the relevant rights holder; otherwise necessary consents shall be obtained."
     )
 }
 

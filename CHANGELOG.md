@@ -2,6 +2,7 @@
 
 ## 0.3.0
 
+- Rebuild all ten PDF templates around a shared reading grid, optically sized bundled fonts, hanging clause numbers, deliberate paragraph/list spacing, readable running furniture and consistent signature fields. Keep list introductions with their first item and short list items intact across page breaks.
 - Add explicit UK, US, Singapore and global legal profiles; validate state, governing law and venue choices.
 - Add folio, counsel and atelier PDF designs, selectable A4/US Letter, embedded font fallbacks and semantic headings in the new designs.
 - Add technology, design and startup clause packs. Refresh standard packs for liability, IP, confidentiality, notices, data processing and execution; retain the preceding pack versions in an archive.

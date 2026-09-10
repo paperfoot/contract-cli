@@ -1,12 +1,12 @@
-//! description: Precise technology and startup agreements with generous type and clean white pages.
+//! description: Precise technology and startup agreements with a clear sans serif and generous reading space.
 //! mood: precise, calm, contemporary
 //! tags: technology, software, startup, modern, clean, white
-//! fonts: Archivo, Libre Franklin (bundled OFL)
+//! fonts: Libre Franklin (bundled OFL)
 //! paper: A4 / white
 #import "../shared/modern.typ": modern-contract
 #let theme = (
-  ink: rgb("#202722"), paper: white, accent: rgb("#33483E"), mute: rgb("#58615B"), hair: rgb("#CCD3CE"), watermark: rgb("#EDF0ED"),
-  display-font: "Archivo", body-font: "Libre Franklin", label-style: "upper",
-  margin: (top: 22mm, bottom: 24mm, left: 26mm, right: 26mm),
+  ink: rgb("#202722"), paper: rgb("#FFFFFF"), accent: rgb("#33483E"),
+  mute: rgb("#58615B"), hair: rgb("#CCD3CE"), watermark: rgb("#EEECE8"),
+  display-font: "Libre Franklin", body-font: "Libre Franklin", body-size: 11.25pt, title-weight: 500,
 )
-#modern-contract(theme)
+#modern-contract(theme, character: "folio")

@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
+import xml.etree.ElementTree as ET
 
 
 EXPECTED_TEMPLATES = {
@@ -127,8 +128,21 @@ def inspect_pdf(pdf: Path, pdftotext: str, markers: tuple[str, ...]) -> None:
         if handle.read(5) != b"%PDF-":
             raise SmokeFailure(f"invalid PDF header: {pdf.name}")
 
-    result = run_checked([pdftotext, "-enc", "UTF-8", str(pdf), "-"])
-    text = normalized(result.stdout)
+    # Body text may span pages. Exclude running furniture by position before
+    # joining words, otherwise a page number can falsely break a clause marker.
+    result = run_checked([pdftotext, "-bbox", "-enc", "UTF-8", str(pdf), "-"])
+    document = ET.fromstring(result.stdout)
+    body_words = []
+    for page in document.findall(".//{*}page"):
+        width, height = float(page.attrib["width"]), float(page.attrib["height"])
+        for word in page.findall(".//{*}word"):
+            x0, x1 = float(word.attrib["xMin"]), float(word.attrib["xMax"])
+            y0, y1 = float(word.attrib["yMin"]), float(word.attrib["yMax"])
+            if 65 <= y0 and y1 <= height - 65:
+                if x0 < 65 or x1 > width - 80:
+                    raise SmokeFailure(f"text escapes the reading grid in {pdf.name}: {word.text!r}")
+                body_words.append(word.text or "")
+    text = normalized(" ".join(body_words))
     if "{{" in text or "}}" in text:
         raise SmokeFailure(f"unresolved template variable in {pdf.name}")
     for marker in markers:
@@ -244,6 +258,108 @@ def check_custom_content(binary: Path, env: dict[str, str], pdftotext: str, root
         raise SmokeFailure("unresolved term did not block a clean render")
 
 
+def check_long_parties(
+    binary: Path,
+    env: dict[str, str],
+    pdftotext: str,
+    output_dir: Path,
+) -> int:
+    issuer_legal = (
+        "Acme Example International Software Research, Product Design, Systems "
+        "Engineering and Responsible Innovation Holdings Limited"
+    )
+    client_legal = (
+        "Meridian Example Global Technology Advisory, Digital Infrastructure, "
+        "Commercial Strategy and Sustainable Ventures Limited"
+    )
+    cli_json(
+        binary,
+        env,
+        [
+            "issuer",
+            "add",
+            "acme-long",
+            "--name",
+            "Acme Example",
+            "--legal-name",
+            issuer_legal,
+            "--jurisdiction",
+            "uk",
+            "--address",
+            "100 Example Way\nExample District\nLondon EX1 1AA\nUnited Kingdom",
+            "--email",
+            "contracts-and-legal-notices-for-international-projects@acme-long.example",
+        ],
+    )
+    cli_json(
+        binary,
+        env,
+        [
+            "clients",
+            "add",
+            "meridian-long",
+            "--name",
+            "Meridian Example",
+            "--legal-name",
+            client_legal,
+            "--jurisdiction",
+            "England and Wales",
+            "--address",
+            "200 Sample Avenue\nSample Quarter\nManchester EX2 2BB\nUnited Kingdom",
+            "--email",
+            "legal-and-procurement-correspondence@meridian-long.example",
+        ],
+    )
+    record = cli_json(
+        binary,
+        env,
+        [
+            "new",
+            "--kind",
+            "consulting",
+            "--as",
+            "acme-long",
+            "--client",
+            "meridian-long",
+            "--purpose",
+            "Evaluate a software partnership",
+            "--fee",
+            "fixed:8400:GBP",
+            "--legal-profile",
+            "uk",
+            "--pack",
+            "standard",
+        ],
+    )
+    number = record["number"]
+    markers = (
+        issuer_legal,
+        client_legal,
+        "Agreement and signatures",
+        "The parties agree to the terms set out above.",
+        "Signed by / for",
+    )
+    rendered = 0
+    for template in ("folio", "counsel"):
+        pdf = output_dir / f"{template}-consulting-long-parties.pdf"
+        cli_json(
+            binary,
+            env,
+            [
+                "render",
+                number,
+                "--template",
+                template,
+                "--final",
+                "--out",
+                str(pdf),
+            ],
+        )
+        inspect_pdf(pdf, pdftotext, markers)
+        rendered += 1
+    return rendered
+
+
 def main() -> int:
     args = parse_args()
     binary = resolve_binary(args.binary)
@@ -299,11 +415,13 @@ def main() -> int:
             check_us_letter(letter_pdf, pdfinfo)
         check_custom_content(binary, env, pdftotext, root)
         rendered += 1
+        rendered += check_long_parties(binary, env, pdftotext, output_dir)
 
     dimension_status = "checked" if pdfinfo else "skipped (pdfinfo unavailable)"
     print(
         f"OK: {rendered} PDFs; 10 templates x 7 kinds, 3 pack previews, "
-        f"1 US Letter ({dimension_status}), 1 long custom document; failure/notes checks passed"
+        f"1 US Letter ({dimension_status}), 1 long custom document, "
+        f"2 long-party final documents; failure/notes checks passed"
     )
     return 0
 

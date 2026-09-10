@@ -6,7 +6,7 @@ kind = "loan"
 default_clauses = ["the_loan", "advance", "interest", "repayment", "prepayment", "default", "set_off", "costs", "assignment", "notices", "no_partnership", "third_party_rights", "entire_agreement", "counterparts", "governing_law", "regulatory_scope"]
 
 [clauses.the_loan]
-heading = "The Loan"
+heading = "The loan"
 body = """
 {{our_legal_name}} (the “Lender”) agrees to lend {{their_legal_name}} (the “Borrower”) {{principal_text}} (the “Loan”). If no amount is stated above, the “Loan” means the total amount the Lender actually advances to the Borrower under this agreement.
 """
@@ -36,7 +36,7 @@ The Borrower may repay the Loan early, in whole or in part, at any time and with
 """
 
 [clauses.default]
-heading = "Default and Acceleration"
+heading = "Default and acceleration"
 body = """
 Each of the following is an “Event of Default”:
 
@@ -48,7 +48,7 @@ If an Event of Default occurs, the Lender may, by written notice, declare the wh
 """
 
 [clauses.set_off]
-heading = "Payments Without Set-Off"
+heading = "Payments without set-off"
 body = """
 All payments by the Borrower under this agreement must be made in full, without set-off, counterclaim, deduction, or withholding, except for any deduction or withholding required by law.
 """
@@ -72,31 +72,31 @@ Notices must be in writing and sent to the contact email or postal address in th
 """
 
 [clauses.no_partnership]
-heading = "No Partnership"
+heading = "No partnership"
 body = """
 Nothing in this agreement creates a partnership, joint venture, agency, or employment relationship between the parties, and the Lender owes the Borrower no duties as an advisor or fiduciary.
 """
 
 [clauses.third_party_rights]
-heading = "Third-Party Rights"
+heading = "Third-party rights"
 body = """
 A person who is not a party to this agreement has no right to enforce any of its terms, except where mandatory law provides otherwise.
 """
 
 [clauses.entire_agreement]
-heading = "Entire Agreement"
+heading = "Entire agreement"
 body = """
 This agreement is the entire agreement between the parties on the Loan and replaces prior discussions on the same subject. Changes must be in writing and signed by both parties. Nothing excludes or limits liability for fraud, fraudulent misrepresentation or any liability that cannot lawfully be excluded.
 """
 
 [clauses.counterparts]
-heading = "Counterparts and Electronic Signatures"
+heading = "Counterparts and electronic signatures"
 body = """
 This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — may be used where permitted by applicable law and all required execution formalities are met.
 """
 
 [clauses.governing_law]
-heading = "Governing Law and Jurisdiction"
+heading = "Governing law and jurisdiction"
 body = """
 This agreement, and any dispute arising out of or in connection with it, are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
 """

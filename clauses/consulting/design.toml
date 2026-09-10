@@ -28,7 +28,7 @@ If the Client wants something materially outside this list, the parties will agr
 """
 
 [clauses.fees_and_expenses]
-heading = "Fees and Expenses"
+heading = "Fees and expenses"
 body = """
 The Client will pay the Consultant {{fee_text}}.
 
@@ -42,7 +42,7 @@ The engagement begins on {{effective_date}} and continues {{term_text}}. The Con
 """
 
 [clauses.relationship]
-heading = "Independent Contractor"
+heading = "Independent contractor"
 body = """
 The Consultant is an independent contractor, not an employee, agent, partner, or joint-venture partner of the Client. Nothing in this agreement creates such a relationship. The Consultant is responsible for its own taxes, social contributions, and insurance, and may engage subcontractors provided the Consultant remains responsible for their work.
 """
@@ -56,7 +56,13 @@ body = """
 [clauses.confidentiality]
 heading = "Confidentiality"
 body = """
-Each party shall protect the other party's non-public information with reasonable care, use it only to perform this agreement, and disclose it only to personnel, subcontractors and professional advisers who need it for that purpose and owe equivalent duties of confidence. Each party remains responsible for those recipients. These duties do not cover information demonstrably public without breach, already lawfully known without restriction, independently developed, or lawfully received from a third party without restriction. Legally required disclosures are permitted to the minimum extent required, with prior notice where lawful. Nothing restricts protected disclosures to regulators, law enforcement or legal advisers, or the reporting of wrongdoing protected by applicable law. The duties last for {{confidentiality_years}} years after termination, and for trade secrets while they remain protected by applicable law. On request, confidential material shall be returned or deleted, subject to legal retention and inaccessible routine backups, which remain protected.
+Each party shall protect the other party's non-public information with reasonable care, use it only to perform this agreement, and disclose it only to personnel, subcontractors and professional advisers who need it for that purpose and owe equivalent duties of confidence. Each party remains responsible for those recipients.
+
+These duties do not cover information demonstrably public without breach, already lawfully known without restriction, independently developed, or lawfully received from a third party without restriction.
+
+Legally required disclosures are permitted to the minimum extent required, with prior notice where lawful. Nothing restricts protected disclosures to regulators, law enforcement or legal advisers, or the reporting of wrongdoing protected by applicable law.
+
+The duties last for {{confidentiality_years}} years after termination, and for trade secrets while they remain protected by applicable law. On request, confidential material shall be returned or deleted, subject to legal retention and inaccessible routine backups, which remain protected.
 """
 
 [clauses.warranties]
@@ -82,15 +88,21 @@ Either party may terminate this agreement for convenience by giving the other at
 [clauses.general]
 heading = "General provisions"
 body = """
-This agreement is the entire agreement on its subject and supersedes earlier discussions; nothing excludes liability for fraud or fraudulent misrepresentation. Amendments must be in writing and agreed by authorised representatives of both parties. An exchange of emails expressly agreeing a change is sufficient, except where law requires a different formality. A delay in enforcing a right is not a waiver. If a provision is unenforceable, the remaining provisions continue in effect. Assignment of rights requires the other party's written consent, not to be unreasonably withheld; transfer of obligations requires a written novation agreed by all affected parties. No person other than the parties may enforce this agreement except where mandatory law provides otherwise.
+This agreement is the entire agreement on its subject and supersedes earlier discussions; nothing excludes liability for fraud or fraudulent misrepresentation. Amendments must be in writing and agreed by authorised representatives of both parties. An exchange of emails expressly agreeing a change is sufficient, except where law requires a different formality.
 
-Notices shall be sent to the contact email or postal address identified in the Parties section, or a replacement notified in writing. Email notices take effect when receipt is acknowledged by the recipient, excluding automated responses; if not acknowledged, the sender must use delivery with evidence of receipt. This notice method does not govern service of court proceedings. This agreement may be signed in counterparts and by electronic signature where permitted by law. Each signatory confirms authority to bind the relevant party. Recording a signatory's name in software does not itself establish consent or authority.
+A delay in enforcing a right is not a waiver. If a provision is unenforceable, the remaining provisions continue in effect.
+
+Assignment of rights requires the other party's written consent, not to be unreasonably withheld; transfer of obligations requires a written novation agreed by all affected parties. No person other than the parties may enforce this agreement except where mandatory law provides otherwise.
+
+Notices shall be sent to the contact email or postal address identified in the Parties section, or a replacement notified in writing. Email notices take effect when receipt is acknowledged by the recipient, excluding automated responses; if not acknowledged, the sender must use delivery with evidence of receipt. This notice method does not govern service of court proceedings.
+
+This agreement may be signed in counterparts and by electronic signature where permitted by law. Each signatory confirms authority to bind the relevant party. Recording a signatory's name in software does not itself establish consent or authority.
 
 This agreement and non-contractual obligations arising from it are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}, without preventing urgent interim relief from another court with competent jurisdiction.
 """
 
 [clauses.non_solicit]
-heading = "Non-Solicitation"
+heading = "Non-solicitation"
 body = """
 While this agreement is in force and for 12 months after it ends, neither party will actively solicit for employment or engagement any employee or contractor of the other with whom it had material contact under this engagement. General recruitment advertising not targeted at those people — and hiring anyone who responds to it — is not a breach.
 """
@@ -98,7 +110,9 @@ While this agreement is in force and for 12 months after it ends, neither party 
 [clauses.data_protection]
 heading = "Data protection and security"
 body = """
-Each party shall comply with applicable data protection law. The parties shall identify their respective controller and processor roles before sharing personal data. Where one party processes personal data on behalf of the other, processing must not begin until they have signed a data processing schedule covering the subject matter, duration, purpose, data types and data subjects; documented instructions; confidentiality; security; approved subprocessors; assistance with rights, breaches and impact assessments; audit information; deletion or return; and lawful international transfers. This agreement alone does not authorise such processing or supply that schedule.
+Each party shall comply with applicable data protection law. The parties shall identify their respective controller and processor roles before sharing personal data.
+
+Where one party processes personal data on behalf of the other, processing must not begin until they have signed a data processing schedule covering the subject matter, duration, purpose, data types and data subjects; documented instructions; confidentiality; security; approved subprocessors; assistance with rights, breaches and impact assessments; audit information; deletion or return; and lawful international transfers. This agreement alone does not authorise such processing or supply that schedule.
 
 Neither party may put the other party's confidential information or personal data into a public or third-party AI service without prior written authorisation and agreement on retention, training use, security and subprocessors. Each party shall notify the other without undue delay of a security incident affecting the other's information and cooperate in containment and recovery.
 """
@@ -106,7 +120,13 @@ Neither party may put the other party's confidential information or personal dat
 [clauses.acceptance]
 heading = "Review and acceptance"
 body = """
-Acceptance shall be assessed against the deliverables and objective acceptance criteria expressly agreed in writing. Within {{acceptance_days}} business days after delivery, the {{their_role}} shall confirm acceptance or give written details of material non-conformities against those criteria. The {{our_role}} shall correct those non-conformities at its own cost within a reasonable period and resubmit for review. Silence alone is not acceptance. A minor defect that does not materially prevent the agreed use shall not justify rejecting otherwise conforming work, but must be corrected. Acceptance does not waive rights relating to latent defects or express warranties. Changes to agreed criteria or additional work require a written change order setting out fees and timing.
+Acceptance shall be assessed against the deliverables and objective acceptance criteria expressly agreed in writing. Within {{acceptance_days}} business days after delivery, the {{their_role}} shall confirm acceptance or give written details of material non-conformities against those criteria.
+
+The {{our_role}} shall correct those non-conformities at its own cost within a reasonable period and resubmit for review. Silence alone is not acceptance. A minor defect that does not materially prevent the agreed use shall not justify rejecting otherwise conforming work, but must be corrected.
+
+Acceptance does not waive rights relating to latent defects or express warranties.
+
+Changes to agreed criteria or additional work require a written change order setting out fees and timing.
 """
 
 [clauses.creative_scope]

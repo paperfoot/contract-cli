@@ -1,4 +1,3 @@
-use chrono::Utc;
 use std::path::PathBuf;
 
 use crate::clauses;
@@ -171,7 +170,7 @@ fn sample_client() -> Client {
 }
 
 fn sample_contract(kind: &str) -> Contract {
-    let today = Utc::now().date_naive().format("%Y-%m-%d").to_string();
+    let today = "2026-09-01".to_string();
     let terms = match kind {
         "nda" => serde_json::json!({
             "mutuality": "mutual",

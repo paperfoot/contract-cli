@@ -87,9 +87,9 @@ contract template preview atelier --kind consulting --pack design --out ./design
 contract template find "quiet legal serif"
 ```
 
-The original `helvetica-nera`, `vienna-legal`, `editorial`, `gazette`, `marrakech`, `basel` and `chancery` designs remain available. The default remains `helvetica-nera`.
+All ten templates use one shared layout: a 142 mm reading column on A4, hanging clause numbers, flush-left paragraphs with visible separation, aligned lists and intact signature blocks. The original `helvetica-nera`, `vienna-legal`, `editorial`, `gazette`, `marrakech`, `basel` and `chancery` names remain available with rebuilt layouts. The default remains `helvetica-nera`.
 
-Template resolution is `--template`, then the contract's stored template, then a valid shared config template, then `helvetica-nera`. A shared invoice-only template is skipped. `config set default_template folio` changes the shared accounting configuration. Embedded fonts carry OFL licences; older designs may use system fonts before their embedded fallbacks, so appearance can differ across machines.
+Template resolution is `--template`, then the contract's stored template, then a valid shared config template, then `helvetica-nera`. A shared invoice-only template is skipped. `config set default_template folio` changes the shared accounting configuration. Every stock template uses bundled OFL fonts. Body, headings, labels and signatures share the same family within each design; Gazette adds a separate display face for its title. The typography rules and review criteria are in [the design guide](docs/TYPOGRAPHY.md).
 
 ## Compose clauses
 
@@ -139,7 +139,7 @@ cargo build --locked
 python3 scripts/smoke-pdfs.py --binary target/debug/contract
 ```
 
-The PDF smoke check renders every template/kind combination and the specialised packs, verifies actual clause text and unresolved variables, and checks US Letter dimensions when `pdfinfo` is available. A long custom-document case also checks wrapped lists, private-note exclusion, missing-term rejection and preservation of an existing PDF after compiler failure. Tests isolate HOME and XDG state. The migration tests preserve populated legacy records, custom indexes/triggers, foreign keys and sequence values.
+The PDF smoke check renders every template/kind combination and the specialised packs, verifies actual clause text, text bounds and unresolved variables, and checks US Letter dimensions when `pdfinfo` is available. Long-party cases verify wrapping and full legal names. A long custom-document case also checks wrapped lists, private-note exclusion, missing-term rejection and preservation of an existing PDF after compiler failure. Tests isolate HOME and XDG state. The migration tests preserve populated legacy records, custom indexes/triggers, foreign keys and sequence values.
 
 See [changes](CHANGELOG.md) and [legal scope](docs/LEGAL.md). These are drafting starting points for two-party business agreements, not a substitute for legal advice or prescribed regulated documents.
 

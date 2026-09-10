@@ -112,31 +112,56 @@
 
 // Parse block structure without eval. Continuation lines in lists must never
 // disappear: legal text cannot be dropped because of its line wrapping.
+// Keep a short terminal word (for example "and") with its predecessor.
+// The non-breaking space changes only line-breaking, never contract wording.
+#let keep-list-tail(s) = {
+  let words = s.split(" ")
+  if words.len() > 1 and words.last().len() <= 4 {
+    let last = words.pop()
+    let previous = words.pop()
+    words.push(previous + "\u{00a0}" + last)
+  }
+  words.join(" ")
+}
+
 #let render-markdown(md) = {
-  let groups = md.replace("\r\n", "\n").split("\n\n")
-  for group in groups {
+  let groups = md.replace("\r\n", "\n").split("\n\n").filter(g => g.trim() != "")
+  for (index, group) in groups.enumerate() {
     let kind = "paragraph"
     let items = ()
     let prose = ()
-    let flush(kind, items, prose) = {
+    let flush(kind, items, prose, sticky: false) = {
       if items.len() > 0 {
-        if kind == "bullet" { list(..items) } else { enum(..items) }
+        let bodies = items.map(item => {
+          let body = keep-list-tail(item)
+          // Normal items move intact. Arbitrarily long custom items still flow.
+          if item.len() <= 400 { block(breakable: false, body) } else { body }
+        })
+        if kind == "bullet" { list(..bodies) } else { enum(..bodies) }
       }
-      if prose.len() > 0 { par(prose.join(" ")) }
+      if prose.len() > 0 {
+        let paragraph = prose.join(" ")
+        block(sticky: sticky, breakable: paragraph.len() > 400, par(paragraph))
+      }
     }
     for line in group.split("\n") {
       let line = line.trim()
       if line == "" { continue }
       let next = if line.starts-with("- ") { "bullet" } else if starts-with-number(line) { "number" } else { "paragraph" }
       if next != "paragraph" {
-        if kind != next { flush(kind, items, prose); items = (); prose = () }
+        if kind != next {
+          flush(kind, items, prose, sticky: prose.len() > 0)
+          items = (); prose = ()
+        }
         kind = next
         items.push(if next == "bullet" { line.slice(2) } else { strip-num-prefix(line) })
       } else if items.len() > 0 {
         items.at(items.len() - 1) += " " + line
       } else { prose.push(line) }
     }
-    flush(kind, items, prose)
+    let next-group = if index + 1 < groups.len() { groups.at(index + 1).trim() } else { "" }
+    let before-list = next-group.starts-with("- ") or starts-with-number(next-group)
+    flush(kind, items, prose, sticky: before-list)
   }
 }
 
@@ -344,40 +369,20 @@
 // avoiding double-stamping the same info top and bottom of the page.
 
 #let compact-strip(theme) = {
-  let mute = th(theme, "mute", rgb("#666666"))
-  pad(top: mm-sp.s, bottom: 0mm)[
-    #grid(
-      columns: (1fr, auto),
-      align: (left + horizon, right + horizon),
-      context fit-size(
-        (8pt, 7.5pt, 7pt),
-        160mm,
-        s => text(size: s, fill: mute, tracking: 0.3pt)[#upper(data.kind-label) · No. #data.number],
-      ),
-      [],
-    )
-    #v(sp.xs)
-    #hairline(theme)
+  pad(left: 8mm, top: 4mm)[
+    #set text(font: theme.body-font, size: 8.5pt, fill: theme.mute)
+    #grid(columns: (1fr, auto), column-gutter: 5mm,
+      [#data.kind-label], [#data.number])
   ]
 }
 
-// ─── Pagination footer ────────────────────────────────────────────────────
-
+// Running furniture is readable at print size and shares the body axis.
 #let pagination-footer(theme) = {
-  let mute = th(theme, "mute", rgb("#666666"))
-  pad(top: 0mm, bottom: mm-sp.s)[
-    #hairline(theme)
-    #v(sp.xs)
-    #grid(
-      columns: (1fr, auto),
-      align: (left + horizon, right + horizon),
-      // Internal reference code lives only in the footer, at small size,
-      // so it doesn't intrude on the body. Useful for filing, invisible
-      // on a casual read.
-      text(size: 6.5pt, fill: mute, tracking: 0.4pt)[Ref. #data.number],
-      context text(size: 6.5pt, fill: mute, tracking: 0.4pt)[
-        Page #here().page() of #counter(page).final().first()
-      ],
+  pad(left: 8mm, bottom: 4mm)[
+    #set text(font: theme.body-font, size: 8.5pt, fill: theme.mute)
+    #grid(columns: (1fr, auto), column-gutter: 5mm,
+      [#data.number],
+      context [#here().page() / #counter(page).final().first()],
     )
   ]
 }

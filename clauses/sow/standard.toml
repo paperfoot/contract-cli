@@ -12,7 +12,7 @@ This SOW is entered into by {{our_legal_name}} (the “Provider”) and {{their_
 """
 
 [clauses.description]
-heading = "Project Description"
+heading = "Project description"
 body = """
 {{purpose}}
 """
@@ -28,7 +28,7 @@ The Provider will deliver the following:
 [clauses.fees]
 heading = "Fees"
 body = """
-{{fee_text}}.
+The Client will pay the Provider {{fee_text}}.
 
 Invoices are payable within 14 days of receipt. Reasonable out-of-pocket expenses are reimbursable when pre-approved in writing.
 """
@@ -42,7 +42,13 @@ Work begins on {{effective_date}} and runs {{term_text}}. Specific milestones, i
 [clauses.acceptance]
 heading = "Review and acceptance"
 body = """
-Acceptance shall be assessed against the deliverables and objective acceptance criteria expressly agreed in writing. Within {{acceptance_days}} business days after delivery, the {{their_role}} shall confirm acceptance or give written details of material non-conformities against those criteria. The {{our_role}} shall correct those non-conformities at its own cost within a reasonable period and resubmit for review. Silence alone is not acceptance. A minor defect that does not materially prevent the agreed use shall not justify rejecting otherwise conforming work, but must be corrected. Acceptance does not waive rights relating to latent defects or express warranties. Changes to agreed criteria or additional work require a written change order setting out fees and timing.
+Acceptance shall be assessed against the deliverables and objective acceptance criteria expressly agreed in writing. Within {{acceptance_days}} business days after delivery, the {{their_role}} shall confirm acceptance or give written details of material non-conformities against those criteria.
+
+The {{our_role}} shall correct those non-conformities at its own cost within a reasonable period and resubmit for review. Silence alone is not acceptance. A minor defect that does not materially prevent the agreed use shall not justify rejecting otherwise conforming work, but must be corrected.
+
+Acceptance does not waive rights relating to latent defects or express warranties.
+
+Changes to agreed criteria or additional work require a written change order setting out fees and timing.
 """
 
 [clauses.assumptions]

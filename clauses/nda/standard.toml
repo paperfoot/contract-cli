@@ -20,7 +20,7 @@ Confidential Information includes technical, commercial and financial informatio
 """
 
 [clauses.obligations]
-heading = "How the Information Must Be Treated"
+heading = "How the information must be treated"
 body = """
 The receiving party will:
 
@@ -31,7 +31,7 @@ The receiving party will:
 """
 
 [clauses.exclusions]
-heading = "What Is Not Covered"
+heading = "What is not covered"
 body = """
 These obligations do not apply to information that:
 
@@ -44,7 +44,7 @@ If a court, regulator, or law forces disclosure, the receiving party may comply,
 """
 
 [clauses.permitted_disclosures]
-heading = "Sharing With Advisors"
+heading = "Sharing with advisors"
 body = """
 The receiving party may share the Confidential Information with its directors, employees, and professional advisors (such as lawyers and accountants) on a need-to-know basis, provided those people are bound by obligations of confidentiality at least as protective as this agreement. The receiving party remains responsible for any breach by anyone it shares the information with.
 """
@@ -56,19 +56,19 @@ This agreement takes effect on {{effective_date}} and continues {{term_text}}. E
 """
 
 [clauses.return_or_destroy]
-heading = "Return or Destruction"
+heading = "Return or destruction"
 body = """
 On written request from the disclosing party, or when this agreement ends, the receiving party will promptly return or destroy all Confidential Information in its possession (including copies), other than (i) one archive copy retained by its legal or compliance function and (ii) routine electronic backups that cannot be reasonably deleted. Anything retained remains subject to this agreement.
 """
 
 [clauses.no_license]
-heading = "No Licence, No Warranty"
+heading = "No licence, no warranty"
 body = """
 Nothing in this agreement gives either party any rights — by licence, ownership, or otherwise — in the other party’s Confidential Information or intellectual property. Confidential Information is provided “as is”. Neither party makes any warranty as to its accuracy or completeness.
 """
 
 [clauses.no_obligation]
-heading = "No Commitment"
+heading = "No commitment"
 body = """
 Neither party is obliged by this agreement to enter into any further agreement, to share any specific information, or to pursue the Purpose. Either party may end its participation in discussions at any time.
 """
@@ -80,7 +80,7 @@ Both parties acknowledge that a breach of this agreement may cause irreparable h
 """
 
 [clauses.governing_law]
-heading = "Governing Law"
+heading = "Governing law"
 body = """
 This agreement is governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}} for any dispute arising out of or in connection with it.
 """
@@ -92,7 +92,7 @@ This agreement is the entire agreement on its subject and supersedes earlier dis
 """
 
 [clauses.variation]
-heading = "Variation and Waiver"
+heading = "Variation and waiver"
 body = """
 Changes to this agreement must be in writing and signed by both parties. A failure or delay in exercising a right is not a waiver of it.
 """
@@ -128,19 +128,19 @@ A person who is not a party to this agreement has no right to enforce its terms,
 """
 
 [clauses.no_partnership]
-heading = "No Partnership"
+heading = "No partnership"
 body = """
 Nothing in this agreement creates a partnership, joint venture, agency, or employment relationship between the parties.
 """
 
 [clauses.non_circumvention]
-heading = "Non-Circumvention"
+heading = "Non-circumvention"
 body = """
 Neither party will use the other’s Confidential Information, or any introduction made under this agreement, to circumvent or bypass the other party in relation to any contact, counterparty, or opportunity first made known to it by the other party — including by dealing with that contact directly so as to exclude the other party from a transaction or from remuneration separately agreed with it. This obligation applies during the term of this agreement and for {{non_circumvention_months}} months after it ends; if no period is stated, it applies for as long as the confidentiality obligations survive.
 """
 
 [clauses.non_solicit]
-heading = "Non-Solicitation"
+heading = "Non-solicitation"
 body = """
 While this agreement is in force and for 12 months after it ends, neither party will actively solicit for employment or engagement any employee or contractor of the other with whom it had material contact in connection with the Purpose. General recruitment advertising not targeted at those people — and hiring anyone who responds to it — is not a breach.
 """
