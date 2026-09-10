@@ -20,8 +20,17 @@ pub const KINDS: &[KindSpec] = &[
         roles: ("Disclosing Party", "Receiving Party"),
         description: "Confidentiality agreement (mutual or one-way) — protects information exchanged while exploring a deal.",
         tags: &[
-            "confidential", "confidentiality", "secret", "nondisclosure", "non-disclosure",
-            "disclosure", "privacy", "protect", "information", "evaluate", "exploring",
+            "confidential",
+            "confidentiality",
+            "secret",
+            "nondisclosure",
+            "non-disclosure",
+            "disclosure",
+            "privacy",
+            "protect",
+            "information",
+            "evaluate",
+            "exploring",
         ],
     },
     KindSpec {
@@ -30,9 +39,22 @@ pub const KINDS: &[KindSpec] = &[
         roles: ("Party", "Party"),
         description: "Non-circumvention + non-disclosure — stops a counterparty going around you to deal directly with contacts you introduce, and protects the information shared.",
         tags: &[
-            "circumvent", "circumvention", "non-circumvention", "go-around", "bypass",
-            "introducer", "introduction", "intermediary", "broker", "middleman",
-            "commission", "protect-contacts", "steal", "poach", "direct-deal", "cut-out",
+            "circumvent",
+            "circumvention",
+            "non-circumvention",
+            "go-around",
+            "bypass",
+            "introducer",
+            "introduction",
+            "intermediary",
+            "broker",
+            "middleman",
+            "commission",
+            "protect-contacts",
+            "steal",
+            "poach",
+            "direct-deal",
+            "cut-out",
         ],
     },
     KindSpec {
@@ -41,26 +63,44 @@ pub const KINDS: &[KindSpec] = &[
         roles: ("Consultant", "Client"),
         description: "One engagement with defined deliverables and a fee — a self-contained services contract.",
         tags: &[
-            "freelance", "project", "deliverables", "engagement", "gig", "advisory",
-            "consultant", "services", "scope", "fee",
+            "freelance",
+            "project",
+            "deliverables",
+            "engagement",
+            "gig",
+            "advisory",
+            "consultant",
+            "services",
+            "scope",
+            "fee",
         ],
     },
     KindSpec {
         kind: "msa",
         prefix: "MSA",
-        roles: ("Provider", "Customer"),
+        roles: ("Provider", "Client"),
         description: "Master services agreement — umbrella terms with no fee or scope; SOWs hang off it per piece of work.",
         tags: &[
-            "master", "framework", "umbrella", "long-term", "terms", "relationship",
+            "master",
+            "framework",
+            "umbrella",
+            "long-term",
+            "terms",
+            "relationship",
         ],
     },
     KindSpec {
         kind: "sow",
         prefix: "SOW",
-        roles: ("Provider", "Customer"),
+        roles: ("Provider", "Client"),
         description: "Statement of work under an MSA — scope, deliverables, milestones, and price for one project.",
         tags: &[
-            "scope", "milestones", "work-order", "statement", "under-msa", "project",
+            "scope",
+            "milestones",
+            "work-order",
+            "statement",
+            "under-msa",
+            "project",
         ],
     },
     KindSpec {
@@ -69,8 +109,15 @@ pub const KINDS: &[KindSpec] = &[
         roles: ("Provider", "Customer"),
         description: "Ongoing or recurring services — retainers, hosting, support, monthly reviews.",
         tags: &[
-            "retainer", "ongoing", "recurring", "monthly", "hosting", "support",
-            "subscription", "maintenance", "managed",
+            "retainer",
+            "ongoing",
+            "recurring",
+            "monthly",
+            "hosting",
+            "support",
+            "subscription",
+            "maintenance",
+            "managed",
         ],
     },
     KindSpec {
@@ -79,8 +126,19 @@ pub const KINDS: &[KindSpec] = &[
         roles: ("Lender", "Borrower"),
         description: "Loan agreement between two parties — principal, interest (or interest-free), repayment date, default, and optional security.",
         tags: &[
-            "loan", "lend", "lending", "borrow", "money", "principal", "interest",
-            "repayment", "repay", "credit", "advance", "bridge", "facility",
+            "loan",
+            "lend",
+            "lending",
+            "borrow",
+            "money",
+            "principal",
+            "interest",
+            "repayment",
+            "repay",
+            "credit",
+            "advance",
+            "bridge",
+            "facility",
         ],
     },
 ];
@@ -114,7 +172,10 @@ pub fn score(query: &str, description: &str, tags: &[&str]) -> f64 {
         // exact tag hit is strongest; tag prefix and description hits count less
         if tags.iter().any(|tag| tag == t) {
             hits += 3.0;
-        } else if tags.iter().any(|tag| tag.starts_with(*t) || t.starts_with(*tag)) {
+        } else if tags
+            .iter()
+            .any(|tag| tag.starts_with(*t) || t.starts_with(*tag))
+        {
             hits += 1.5;
         } else if desc.contains(*t) {
             hits += 1.0;

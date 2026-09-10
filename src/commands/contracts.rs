@@ -3,13 +3,13 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use chrono::{Datelike, NaiveDate};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
-use crate::cli::{ContractCmd, ContractListArgs, ContractNewArgs, ContractRenderArgs, SignArgs};
 use crate::clauses;
+use crate::cli::{ContractCmd, ContractListArgs, ContractNewArgs, ContractRenderArgs, SignArgs};
 use crate::db::{self, Contract, ContractClauseRow};
 use crate::error::{AppError, Result};
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 use crate::render;
 
 pub fn run(cmd: ContractCmd, ctx: Ctx) -> Result<()> {
@@ -40,7 +40,10 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
     }
     let effective_iso = match args.effective {
         Some(s) => parse_date(&s)?,
-        None => chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
+        None => chrono::Local::now()
+            .date_naive()
+            .format("%Y-%m-%d")
+            .to_string(),
     };
     let end_iso = match args.end {
         Some(s) => Some(parse_date(&s)?),
@@ -50,30 +53,40 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         (Some(_), Some(_)) => {
             return Err(AppError::InvalidInput(
                 "pass at most one of --term-months / --term-years".into(),
-            ))
+            ));
         }
         (Some(m), None) => Some(m),
-        (None, Some(y)) => Some(y * 12),
+        (None, Some(y)) => Some(
+            y.checked_mul(12)
+                .ok_or_else(|| AppError::InvalidInput("term years is too large".into()))?,
+        ),
         (None, None) => None,
     };
-    if let Some(m) = term_months {
-        if m <= 0 {
-            return Err(AppError::InvalidInput(format!(
-                "invalid term length {m} — must be a positive number of months"
-            )));
-        }
+    crate::legal::validate_dates(&effective_iso, end_iso.as_deref())?;
+    let selected_law = crate::legal::select_profile(
+        args.legal_profile.as_deref(),
+        args.us_state.as_deref(),
+        args.governing_law.as_deref(),
+        args.venue.as_deref(),
+    )?;
+    if let Some(m) = term_months
+        && m <= 0
+    {
+        return Err(AppError::InvalidInput(format!(
+            "invalid term length {m} — must be a positive number of months"
+        )));
     }
     if end_iso.is_some() && term_months.is_some() {
         return Err(AppError::InvalidInput(
             "--end and --term-months/--term-years are mutually exclusive".into(),
         ));
     }
-    if let Some(t) = &args.template {
-        if !crate::typst_assets::has_template(t)? {
-            return Err(AppError::InvalidInput(format!(
-                "template '{t}' not found. Run: contract template list"
-            )));
-        }
+    if let Some(t) = &args.template
+        && !crate::typst_assets::has_template(t)?
+    {
+        return Err(AppError::InvalidInput(format!(
+            "template '{t}' not found. Run: contract template list"
+        )));
     }
 
     // Parse fee
@@ -123,7 +136,13 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         if !args.deliverables.is_empty() {
             terms_obj.insert(
                 "deliverables".into(),
-                Value::Array(args.deliverables.iter().cloned().map(Value::String).collect()),
+                Value::Array(
+                    args.deliverables
+                        .iter()
+                        .cloned()
+                        .map(Value::String)
+                        .collect(),
+                ),
             );
         }
         if let Some(ip) = args.ip_assignment.as_deref() {
@@ -144,6 +163,17 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         let (k, v) = parse_term_kv(spec)?;
         terms_obj.insert(k, Value::String(v));
     }
+    if let Some(profile) = &args.legal_profile {
+        terms_obj.insert("legal_profile".into(), json!(profile));
+    }
+    crate::legal::validate_terms(&mut terms_obj)?;
+    if args.kind == "ncnda"
+        && terms_obj.get("mutuality").and_then(Value::as_str) == Some("unilateral")
+    {
+        return Err(AppError::InvalidInput(
+            "the NCNDA pack is mutual; use nda for a unilateral disclosure agreement".into(),
+        ));
+    }
     let terms_json = Value::Object(terms_obj).to_string();
 
     // All pure input validation is done — only now touch the database.
@@ -163,15 +193,20 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         })?;
     let issuer = db::issuer_by_slug(&conn, &issuer_slug)?;
 
-    let governing_law = args
-        .governing_law
-        .unwrap_or_else(|| issuer.jurisdiction.profile().country.to_string());
+    let governing_law = selected_law.unwrap_or_else(|| {
+        let country = issuer.jurisdiction.profile().country;
+        if country == "United Kingdom" {
+            "England and Wales".into()
+        } else {
+            country.to_string()
+        }
+    });
+    crate::legal::validate_law(&governing_law, args.venue.as_deref())?;
     let venue = args.venue;
 
     let title = args
         .title
         .unwrap_or_else(|| default_title(&args.kind, &issuer.name, &client.name));
-
 
     // Pick clause pack (default: "standard")
     let pack_slug = args.pack.clone().unwrap_or_else(|| "standard".to_string());
@@ -192,6 +227,11 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
         }
     }
     for slug in &args.exclude {
+        if !pack.clauses.contains_key(slug) {
+            return Err(AppError::InvalidInput(format!(
+                "unknown excluded clause {slug}"
+            )));
+        }
         included.retain(|s| s != slug);
     }
     let clause_rows: Vec<ContractClauseRow> = included
@@ -202,8 +242,8 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
             contract_id: 0,
             position: i as i64,
             slug: slug.clone(),
-            heading: None,
-            body: None,
+            heading: pack.clauses.get(slug).map(|d| d.heading.clone()),
+            body: pack.clauses.get(slug).map(|d| d.body.clone()),
         })
         .collect();
 
@@ -253,7 +293,10 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
     print_success(ctx, &saved, |c| {
         println!(
             "created {} contract '{}' for {} ({} clauses)",
-            c.kind, c.number, c.title, clause_rows.len()
+            c.kind,
+            c.number,
+            c.title,
+            clause_rows.len()
         );
     });
     Ok(())
@@ -290,6 +333,13 @@ fn parse_fee(spec: &str) -> Result<(String, i64, String)> {
         return Err(AppError::InvalidInput(format!(
             "unknown fee type '{kind}' (expected fixed | hourly | daily | retainer)"
         )));
+    }
+    if let Some((_, cadence)) = parts[2].split_once('/')
+        && (kind != "retainer" || cadence != "month")
+    {
+        return Err(AppError::InvalidInput(
+            "only retainer fees support the /month suffix".into(),
+        ));
     }
     // Strip a "/month"-style cadence suffix from the currency segment; the
     // cadence belongs in --fee-schedule, not the currency code.
@@ -350,6 +400,11 @@ fn parse_term_kv(spec: &str) -> Result<(String, String)> {
         ))
     })?;
     let k = k.trim();
+    if k == "legal_profile" {
+        return Err(AppError::InvalidInput(
+            "use --legal-profile to select a jurisdiction profile".into(),
+        ));
+    }
     if k.is_empty() || !k.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err(AppError::InvalidInput(format!(
             "invalid --term key '{k}' — use snake_case letters/digits"
@@ -409,7 +464,10 @@ fn cmd_show(number: &str, ctx: Ctx) -> Result<()> {
     let conn = db::open()?;
     let c = db::contract_get_or_404(&conn, number)?;
     let clauses = db::clauses_for(&conn, c.id)?;
-    let view = ContractView { contract: &c, clauses: clauses.clone() };
+    let view = ContractView {
+        contract: &c,
+        clauses: clauses.clone(),
+    };
     print_success(ctx, &view, |v| {
         println!("Contract: {}", v.contract.number);
         println!("  Kind:           {}", v.contract.kind);
@@ -427,11 +485,17 @@ fn cmd_show(number: &str, ctx: Ctx) -> Result<()> {
             println!(
                 "  Fee:            {} {} {}",
                 fee,
-                v.contract.fee_amount_minor.map(|m| (m as f64) / 100.0).unwrap_or(0.0),
+                v.contract
+                    .fee_amount_minor
+                    .map(|m| (m as f64) / 100.0)
+                    .unwrap_or(0.0),
                 v.contract.fee_currency.clone().unwrap_or_default()
             );
         }
-        println!("  Pack:           {} v{}", v.contract.clause_pack, v.contract.clause_pack_version);
+        println!(
+            "  Pack:           {} v{}",
+            v.contract.clause_pack, v.contract.clause_pack_version
+        );
         println!("  Clauses ({}):", v.clauses.len());
         for cl in &v.clauses {
             println!("    {:>2}. {}", cl.position + 1, cl.slug);
@@ -450,8 +514,12 @@ fn cmd_edit(args: crate::cli::ContractEditArgs, ctx: Ctx) -> Result<()> {
     if let Some(slug) = args.client {
         c.client_id = db::client_by_slug(&conn, &slug)?.id;
     }
-    if let Some(v) = args.title { c.title = v; }
-    if let Some(v) = args.effective { c.effective_date = parse_date(&v)?; }
+    if let Some(v) = args.title {
+        c.title = v;
+    }
+    if let Some(v) = args.effective {
+        c.effective_date = parse_date(&v)?;
+    }
     if let Some(v) = args.end {
         c.end_date = Some(parse_date(&v)?);
         c.term_months = None;
@@ -465,8 +533,18 @@ fn cmd_edit(args: crate::cli::ContractEditArgs, ctx: Ctx) -> Result<()> {
         c.term_months = Some(v);
         c.end_date = None;
     }
-    if let Some(v) = args.governing_law { c.governing_law = v; }
-    if let Some(v) = args.venue { c.venue = Some(v); }
+    let selected = crate::legal::select_profile(
+        args.legal_profile.as_deref(),
+        args.us_state.as_deref(),
+        args.governing_law.as_deref(),
+        args.venue.as_deref(),
+    )?;
+    if let Some(v) = selected {
+        c.governing_law = v;
+    }
+    if let Some(v) = args.venue {
+        c.venue = Some(v);
+    }
     if let Some(v) = args.fee {
         let (t, a, cur) = parse_fee(&v)?;
         c.fee_type = Some(t);
@@ -480,18 +558,26 @@ fn cmd_edit(args: crate::cli::ContractEditArgs, ctx: Ctx) -> Result<()> {
             &["on-completion", "monthly", "on-milestone", "upon-invoice"],
         )?);
     }
-    if !args.terms.is_empty() {
-        let mut terms: serde_json::Map<String, Value> =
-            c.terms_json.parse::<Value>().ok()
-                .and_then(|v| v.as_object().cloned())
-                .unwrap_or_default();
+    if !args.terms.is_empty() || args.legal_profile.is_some() {
+        let mut terms: serde_json::Map<String, Value> = c
+            .terms_json
+            .parse::<Value>()
+            .ok()
+            .and_then(|v| v.as_object().cloned())
+            .unwrap_or_default();
         for spec in &args.terms {
             let (k, v) = parse_term_kv(spec)?;
             terms.insert(k, Value::String(v));
         }
+        if let Some(profile) = args.legal_profile {
+            terms.insert("legal_profile".into(), json!(profile));
+        }
+        crate::legal::validate_terms(&mut terms)?;
         c.terms_json = Value::Object(terms).to_string();
     }
-    if let Some(v) = args.notes { c.notes = Some(v); }
+    if let Some(v) = args.notes {
+        c.notes = Some(v);
+    }
     if let Some(v) = args.template {
         if !crate::typst_assets::has_template(&v)? {
             return Err(AppError::InvalidInput(format!(
@@ -500,6 +586,28 @@ fn cmd_edit(args: crate::cli::ContractEditArgs, ctx: Ctx) -> Result<()> {
         }
         c.default_template = Some(v);
     }
+    let current_terms: Value = serde_json::from_str(&c.terms_json)?;
+    if c.kind == "ncnda"
+        && current_terms.get("mutuality").and_then(Value::as_str) == Some("unilateral")
+    {
+        return Err(AppError::InvalidInput(
+            "the NCNDA pack is mutual; use nda for a unilateral disclosure agreement".into(),
+        ));
+    }
+    if let Some(profile) = current_terms.get("legal_profile").and_then(Value::as_str) {
+        crate::legal::select_profile(
+            Some(profile),
+            if profile == "us" {
+                Some(c.governing_law.as_str())
+            } else {
+                None
+            },
+            Some(&c.governing_law),
+            c.venue.as_deref(),
+        )?;
+    }
+    crate::legal::validate_dates(&c.effective_date, c.end_date.as_deref())?;
+    crate::legal::validate_law(&c.governing_law, c.venue.as_deref())?;
     db::contract_update_draft(&conn, &c)?;
     let saved = db::contract_get(&conn, &number)?;
     print_success(ctx, &saved, |s| println!("updated draft '{}'", s.number));
@@ -520,15 +628,21 @@ fn cmd_render(args: ContractRenderArgs, ctx: Ctx) -> Result<()> {
         .find(|x| x.id == c.client_id)
         .ok_or_else(|| AppError::NotFound(format!("client #{}", c.client_id)))?;
     let clause_rows = db::clauses_for(&conn, c.id)?;
-    let pack = clauses::load_pack(&c.kind, &c.clause_pack)?;
+    let pack = clauses::load_pack_version(&c.kind, &c.clause_pack, &c.clause_pack_version)?;
 
     let template = args
         .template
         .or_else(|| c.default_template.clone())
+        .or_else(|| {
+            crate::config::load()
+                .ok()
+                .map(|c| c.default_template)
+                .filter(|t| crate::typst_assets::has_template(t).unwrap_or(false))
+        })
         .unwrap_or_else(|| "helvetica-nera".to_string());
 
     let out_path: PathBuf = match args.out {
-        Some(p) => PathBuf::from(p),
+        Some(p) => PathBuf::from(render::expand_tilde(&p)),
         None => {
             let dir = issuer
                 .default_output_dir
@@ -536,13 +650,31 @@ fn cmd_render(args: ContractRenderArgs, ctx: Ctx) -> Result<()> {
                 .map(|s| PathBuf::from(render::expand_tilde(&s)))
                 .unwrap_or_else(render::default_output_dir);
             std::fs::create_dir_all(&dir)?;
-            dir.join(format!("{}.pdf", c.number))
+            let safe_number: String = c
+                .number
+                .chars()
+                .map(|ch| {
+                    if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                        ch
+                    } else {
+                        '_'
+                    }
+                })
+                .collect();
+            dir.join(format!("{safe_number}.pdf"))
         }
     };
 
     let mut data = render::build_render_data(
-        &c, &issuer, &client, &clause_rows, &pack, args.draft, args.final_render,
+        &c,
+        &issuer,
+        &client,
+        &clause_rows,
+        &pack,
+        args.draft,
+        args.final_render,
     )?;
+    data.paper = args.paper;
     render::render_to_pdf(&template, &mut data, &issuer, &out_path)?;
 
     if args.open {
@@ -597,7 +729,8 @@ fn transition_allowed(from: &str, to: &str) -> bool {
 
 fn cmd_mark(number: &str, status: &str, ctx: Ctx) -> Result<()> {
     let status = validate_choice("status", status, STATUSES)?;
-    let conn = db::open()?;
+    let mut connection = db::open()?;
+    let conn = connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let current = db::contract_get_or_404(&conn, number)?;
     if !transition_allowed(&current.status, &status) {
         return Err(AppError::InvalidInput(format!(
@@ -605,16 +738,33 @@ fn cmd_mark(number: &str, status: &str, ctx: Ctx) -> Result<()> {
             number, current.status, status
         )));
     }
+    if status == "draft"
+        && (current.signed_by_us_name.is_some() || current.signed_by_them_name.is_some())
+    {
+        return Err(AppError::InvalidInput(
+            "a partially signed contract cannot be reopened; duplicate it as a new draft".into(),
+        ));
+    }
     db::contract_set_status(&conn, number, &status)?;
     let c = db::contract_get(&conn, number)?;
+    conn.commit()?;
     print_success(ctx, &c, |c| println!("'{}' → {}", c.number, c.status));
     Ok(())
 }
 
 fn cmd_sign(args: SignArgs, ctx: Ctx) -> Result<()> {
     let side = validate_choice("--side", &args.side, &["us", "them"])?;
-    let conn = db::open()?;
+    if args.name.trim().is_empty() {
+        return Err(AppError::InvalidInput("signer name cannot be blank".into()));
+    }
+    let mut connection = db::open()?;
+    let conn = connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let existing = db::contract_get_or_404(&conn, &args.number)?;
+    if matches!(existing.status.as_str(), "expired" | "terminated") {
+        return Err(AppError::InvalidInput(
+            "cannot record signatures on an expired or terminated contract".into(),
+        ));
+    }
     let already = match side.as_str() {
         "us" => existing.signed_by_us_name.is_some(),
         _ => existing.signed_by_them_name.is_some(),
@@ -627,7 +777,10 @@ fn cmd_sign(args: SignArgs, ctx: Ctx) -> Result<()> {
     }
     let date_iso = match args.date {
         Some(s) => parse_date(&s)?,
-        None => chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
+        None => chrono::Local::now()
+            .date_naive()
+            .format("%Y-%m-%d")
+            .to_string(),
     };
     let c = db::contract_record_signature(
         &conn,
@@ -637,6 +790,7 @@ fn cmd_sign(args: SignArgs, ctx: Ctx) -> Result<()> {
         args.title.as_deref(),
         &date_iso,
     )?;
+    conn.commit()?;
     print_success(ctx, &c, |c| {
         println!(
             "recorded {} signature on '{}'. Status: {}.",
@@ -665,20 +819,41 @@ fn cmd_duplicate(
             .find(|i| i.id == src.issuer_id)
             .ok_or_else(|| AppError::NotFound(format!("issuer #{}", src.issuer_id)))?,
     };
+    let source_issuer = db::issuer_list(&conn)?
+        .into_iter()
+        .find(|i| i.id == src.issuer_id)
+        .ok_or_else(|| AppError::NotFound("source issuer".into()))?;
+    let source_client = db::client_list(&conn)?
+        .into_iter()
+        .find(|i| i.id == src.client_id)
+        .ok_or_else(|| AppError::NotFound("source client".into()))?;
     let client_id = match client {
         Some(slug) => db::client_by_slug(&conn, &slug)?.id,
         None => src.client_id,
     };
     let year = chrono::Local::now().year();
     let new_number = db::next_contract_number(&conn, &issuer, year, &src.kind)?;
-    let today = chrono::Local::now().date_naive().format("%Y-%m-%d").to_string();
+    let today = chrono::Local::now()
+        .date_naive()
+        .format("%Y-%m-%d")
+        .to_string();
+    let new_client = db::client_list(&conn)?
+        .into_iter()
+        .find(|c| c.id == client_id)
+        .ok_or_else(|| AppError::NotFound("client".into()))?;
+    let copied_title =
+        if src.title == default_title(&src.kind, &source_issuer.name, &source_client.name) {
+            default_title(&src.kind, &issuer.name, &new_client.name)
+        } else {
+            src.title.clone()
+        };
     let new_contract = Contract {
         id: 0,
         number: new_number.clone(),
         kind: src.kind.clone(),
         issuer_id: issuer.id,
         client_id,
-        title: src.title.clone(),
+        title: copied_title,
         effective_date: today,
         // A copied absolute end date would predate the new effective date;
         // keep relative terms, drop absolute ones for the user to re-set.

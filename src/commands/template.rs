@@ -1,11 +1,11 @@
 use chrono::Utc;
 use std::path::PathBuf;
 
-use crate::cli::TemplateCmd;
 use crate::clauses;
+use crate::cli::TemplateCmd;
 use crate::db::{Client, Contract, ContractClauseRow, Issuer};
 use crate::error::Result;
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 use crate::render;
 use crate::tax::Jurisdiction;
 use crate::typst_assets;
@@ -74,10 +74,17 @@ pub fn run(cmd: TemplateCmd, ctx: Ctx) -> Result<()> {
             });
             Ok(())
         }
-        TemplateCmd::Preview { name, kind, out } => {
+        TemplateCmd::Preview {
+            name,
+            kind,
+            out,
+            pack: pack_slug,
+            paper,
+        } => {
             let issuer = sample_issuer();
             let client = sample_client();
-            let contract = sample_contract(&kind);
+            let mut contract = sample_contract(&kind);
+            contract.clause_pack = pack_slug;
             let pack = clauses::load_pack(&kind, &contract.clause_pack)?;
             let clause_rows: Vec<ContractClauseRow> = pack
                 .pack
@@ -93,10 +100,19 @@ pub fn run(cmd: TemplateCmd, ctx: Ctx) -> Result<()> {
                     body: None,
                 })
                 .collect();
-            let mut data =
-                render::build_render_data(&contract, &issuer, &client, &clause_rows, &pack, false, true)?;
-            let out_path =
-                PathBuf::from(out.unwrap_or_else(|| format!("preview-{name}-{kind}.pdf")));
+            let mut data = render::build_render_data(
+                &contract,
+                &issuer,
+                &client,
+                &clause_rows,
+                &pack,
+                false,
+                true,
+            )?;
+            data.paper = paper;
+            let out_path = PathBuf::from(render::expand_tilde(
+                &out.unwrap_or_else(|| format!("preview-{name}-{kind}.pdf")),
+            ));
             render::render_to_pdf(&name, &mut data, &issuer, &out_path)?;
             print_success(ctx, &out_path.display().to_string(), |p| {
                 println!("preview → {p}");
@@ -117,10 +133,7 @@ fn sample_issuer() -> Issuer {
         tax_id: None,
         company_no: Some("202312345A".into()),
         tagline: None,
-        address: vec![
-            "1 Marina Bay".into(),
-            "Singapore 018989".into(),
-        ],
+        address: vec!["1 Marina Bay".into(), "Singapore 018989".into()],
         email: Some("hello@acme.example".into()),
         phone: None,
         bank_details: None,
@@ -163,7 +176,7 @@ fn sample_contract(kind: &str) -> Contract {
         "nda" => serde_json::json!({
             "mutuality": "mutual",
             "disclosing_side": "both",
-            "purpose": "a potential collaboration on a longevity research project",
+            "purpose": "a potential collaboration on a new software product",
             "confidentiality_years": 3,
         }),
         "ncnda" => serde_json::json!({
@@ -175,7 +188,7 @@ fn sample_contract(kind: &str) -> Contract {
             "commission_text": "a commission as separately agreed in writing between the parties",
         }),
         "loan" => serde_json::json!({
-            "purpose": "a personal loan between the parties",
+            "purpose": "a commercial loan between the parties",
             "principal_text": "S$10,000 (ten thousand Singapore dollars)",
             "interest_text": "interest-free",
             "repayment_date": "1 December 2026",
@@ -184,7 +197,7 @@ fn sample_contract(kind: &str) -> Contract {
             "purpose": "the design and delivery of a customer-facing dashboard for the Client's flagship product",
             "deliverables": [
                 "Discovery interviews and a one-page strategy memo",
-                "Three rounds of high-fidelity Figma designs",
+                "Interface designs within the agreed revision allowance",
                 "Production-ready front-end implementation in React",
                 "One handover session with the Client's engineering team",
             ],
@@ -198,6 +211,7 @@ fn sample_contract(kind: &str) -> Contract {
             "termination_notice_days": 30,
         }),
         "sow" => serde_json::json!({
+            "msa_reference": "MSA-EXAMPLE-2026-001, dated 1 September 2026",
             "purpose": "Implementation of the customer dashboard described in the kick-off memo dated 2026-04-01.",
             "deliverables": [
                 "Functional prototype by week 4",
@@ -215,10 +229,25 @@ fn sample_contract(kind: &str) -> Contract {
         _ => serde_json::json!({}),
     };
     let (fee_type, fee_minor, fee_cur, fee_sched) = match kind {
-        "consulting" => (Some("fixed".into()), Some(84_000_00i64), Some("SGD".into()), Some("on-completion".into())),
+        "consulting" => (
+            Some("fixed".into()),
+            Some(840_000_i64),
+            Some("SGD".into()),
+            Some("on-completion".into()),
+        ),
         "msa" => (None, None, None, None),
-        "sow" => (Some("fixed".into()), Some(34_000_00i64), Some("SGD".into()), Some("on-milestone".into())),
-        "service" => (Some("retainer".into()), Some(5_000_00i64), Some("SGD".into()), Some("monthly".into())),
+        "sow" => (
+            Some("fixed".into()),
+            Some(340_000_i64),
+            Some("SGD".into()),
+            Some("on-milestone".into()),
+        ),
+        "service" => (
+            Some("retainer".into()),
+            Some(500_000_i64),
+            Some("SGD".into()),
+            Some("monthly".into()),
+        ),
         _ => (None, None, None, None),
     };
     let title = match kind {
@@ -254,7 +283,7 @@ fn sample_contract(kind: &str) -> Contract {
         fee_schedule: fee_sched,
         terms_json: terms.to_string(),
         clause_pack: "standard".into(),
-        clause_pack_version: "1.0".into(),
+        clause_pack_version: "2.0".into(),
         default_template: None,
         signed_by_us_name: None,
         signed_by_us_title: None,

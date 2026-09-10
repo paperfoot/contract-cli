@@ -6,7 +6,7 @@
 use serde_json::json;
 
 use crate::error::Result;
-use crate::output::{print_raw, Ctx};
+use crate::output::{Ctx, print_raw};
 
 fn arg(name: &str, ty: &str, required: bool, desc: &str) -> serde_json::Value {
     json!({ "name": name, "kind": "positional", "type": ty, "required": required, "description": desc })
@@ -20,7 +20,12 @@ fn req_opt(name: &str, ty: &str, desc: &str) -> serde_json::Value {
     json!({ "name": name, "type": ty, "required": true, "description": desc })
 }
 
-fn cmd(desc: &str, aliases: &[&str], args: Vec<serde_json::Value>, options: Vec<serde_json::Value>) -> serde_json::Value {
+fn cmd(
+    desc: &str,
+    aliases: &[&str],
+    args: Vec<serde_json::Value>,
+    options: Vec<serde_json::Value>,
+) -> serde_json::Value {
     let mut v = json!({ "description": desc, "args": args, "options": options });
     if !aliases.is_empty() {
         v["aliases"] = json!(aliases);
@@ -34,22 +39,45 @@ pub fn run(_ctx: Ctx) -> Result<()> {
     let database = crate::config::db_path()?.display().to_string();
 
     let slug = |d: &str| vec![arg("slug", "string", true, d)];
-    let number = || vec![arg("number", "string", true, "Contract number, e.g. NDA-acme-2026-0001")];
+    let number = || {
+        vec![arg(
+            "number",
+            "string",
+            true,
+            "Contract number, e.g. NDA-acme-2026-0001",
+        )]
+    };
 
     let entity_opts = |contract_side: bool| {
         let mut o = vec![
             opt("--name", "string", "Display name"),
-            opt("--legal-name", "string", "Legal entity name used on contracts"),
+            opt(
+                "--legal-name",
+                "string",
+                "Legal entity name used on contracts",
+            ),
             opt("--company-no", "string", "Registration / company number"),
-            opt("--jurisdiction", "string", "Jurisdiction (issuers: sg|uk|us|eu; clients: free text)"),
+            opt(
+                "--jurisdiction",
+                "string",
+                "Jurisdiction (issuers: sg|uk|us|eu; clients: free text)",
+            ),
             opt("--address", "string", "Address lines separated by \\n"),
             opt("--email", "string", "Contact email"),
         ];
         if contract_side {
             o.push(opt("--tax-id", "string", "Tax / VAT id"));
             o.push(opt("--phone", "string", "Phone"));
-            o.push(opt("--logo", "string", "Path to logo image for the contract header"));
-            o.push(opt("--output-dir", "string", "Default output dir for render"));
+            o.push(opt(
+                "--logo",
+                "string",
+                "Path to logo image for the contract header",
+            ));
+            o.push(opt(
+                "--output-dir",
+                "string",
+                "Default output dir for render",
+            ));
         } else {
             o.push(opt("--attn", "string", "Attention line"));
             o.push(opt("--country", "string", "ISO country code"));
@@ -59,34 +87,105 @@ pub fn run(_ctx: Ctx) -> Result<()> {
     };
 
     let new_opts = vec![
-        req_opt("--kind", "string", "nda | ncnda | consulting | msa | sow | service | loan"),
-        opt("--as", "string", "Issuer slug (your side); falls back to client default, then config"),
+        req_opt(
+            "--kind",
+            "string",
+            "nda | ncnda | consulting | msa | sow | service | loan",
+        ),
+        opt(
+            "--as",
+            "string",
+            "Issuer slug (your side); falls back to client default, then config",
+        ),
         req_opt("--client", "string", "Client slug (counterparty)"),
         opt("--title", "string", "Contract title (defaults per kind)"),
-        opt("--effective", "string", "Effective date YYYY-MM-DD (default today)"),
-        opt("--end", "string", "End date YYYY-MM-DD (mutually exclusive with --term-months)"),
+        opt(
+            "--effective",
+            "string",
+            "Effective date YYYY-MM-DD (default today)",
+        ),
+        opt(
+            "--end",
+            "string",
+            "End date YYYY-MM-DD (mutually exclusive with --term-months)",
+        ),
         opt("--term-months", "int", "Term length in months"),
-        opt("--term-years", "int", "Term length in years (sugar for months × 12)"),
-        opt("--governing-law", "string", "Governing law, e.g. 'England and Wales'"),
+        opt(
+            "--term-years",
+            "int",
+            "Term length in years (sugar for months × 12)",
+        ),
+        opt("--legal-profile", "string", "global | uk | us | singapore"),
+        opt(
+            "--us-state",
+            "string",
+            "Full US state name; required with --legal-profile us",
+        ),
+        opt(
+            "--governing-law",
+            "string",
+            "Governing law, e.g. 'England and Wales'",
+        ),
         opt("--venue", "string", "Court venue override"),
-        opt("--fee", "string", "type:amount:currency — fixed:8400:SGD | hourly:200:SGD | daily:1500:SGD | retainer:5000:SGD"),
-        opt("--fee-schedule", "string", "on-completion | monthly | on-milestone | upon-invoice"),
-        opt("--mutuality", "string", "nda/ncnda: mutual | unilateral"),
+        opt(
+            "--fee",
+            "string",
+            "type:amount:currency — fixed:8400:SGD | hourly:200:SGD | daily:1500:SGD | retainer:5000:SGD",
+        ),
+        opt(
+            "--fee-schedule",
+            "string",
+            "on-completion | monthly | on-milestone | upon-invoice",
+        ),
+        opt(
+            "--mutuality",
+            "string",
+            "nda: mutual | unilateral; ncnda: mutual",
+        ),
         opt("--disclosing-side", "string", "nda: us | them | both"),
         opt("--purpose", "string", "Purpose / scope summary"),
         opt("--deliverable", "string", "Deliverable line (repeatable)"),
-        opt("--ip-assignment", "string", "client | consultant | shared"),
-        opt("--termination-notice-days", "int", "Notice days for termination for convenience"),
-        opt("--term", "string", "Arbitrary term key=value for pack {{vars}} (repeatable), e.g. principal_text='£10,000 (ten thousand pounds)'"),
+        opt(
+            "--ip-assignment",
+            "string",
+            "client | consultant | provider | shared",
+        ),
+        opt(
+            "--termination-notice-days",
+            "int",
+            "Notice days for termination for convenience",
+        ),
+        opt(
+            "--term",
+            "string",
+            "Arbitrary term key=value for pack {{vars}} (repeatable), e.g. principal_text='£10,000 (ten thousand pounds)'",
+        ),
         opt("--pack", "string", "Clause pack slug (default: standard)"),
-        opt("--include", "string", "Extra pack clause slug to include (repeatable)"),
-        opt("--exclude", "string", "Default pack clause slug to drop (repeatable)"),
-        opt("--template", "string", "Default render template for this contract"),
+        opt(
+            "--include",
+            "string",
+            "Extra pack clause slug to include (repeatable)",
+        ),
+        opt(
+            "--exclude",
+            "string",
+            "Default pack clause slug to drop (repeatable)",
+        ),
+        opt(
+            "--template",
+            "string",
+            "Default render template for this contract",
+        ),
         opt("--notes", "string", "Internal notes (never rendered)"),
     ];
 
     let render_opts = vec![
-        opt("--template", "string", "Template override (see: template list)"),
+        opt(
+            "--template",
+            "string",
+            "Template override (see: template list)",
+        ),
+        opt("--paper", "string", "a4 | us-letter (default a4)"),
         opt("--out", "string", "Output PDF path"),
         opt("--open", "bool", "Open the PDF after rendering"),
         opt("--draft", "bool", "Force the DRAFT watermark"),
@@ -121,6 +220,8 @@ pub fn run(_ctx: Ctx) -> Result<()> {
             opt("--effective", "string", "Effective date YYYY-MM-DD"),
             opt("--end", "string", "End date (clears term-months)"),
             opt("--term-months", "int", "Term months (clears end date)"),
+            opt("--legal-profile", "string", "global | uk | us | singapore"),
+            opt("--us-state", "string", "Full US state name; required with --legal-profile us"),
             opt("--governing-law", "string", "Governing law"),
             opt("--venue", "string", "Venue"),
             opt("--fee", "string", "type:amount:currency"),
@@ -186,6 +287,8 @@ pub fn run(_ctx: Ctx) -> Result<()> {
         ], vec![]),
         "template preview": cmd("Render a sample contract PDF with synthetic data", &[], vec![arg("name", "string", true, "Template name")], vec![
             opt("--kind", "string", "Contract kind to preview (default consulting)"),
+            opt("--pack", "string", "Clause pack to preview (default standard)"),
+            opt("--paper", "string", "a4 | us-letter (default a4)"),
             opt("--out", "string", "Output path"),
         ]),
         "kinds list": cmd("List contract kinds with descriptions and trigger tags", &["kinds ls", "kind list"], vec![], vec![]),
@@ -267,17 +370,20 @@ pub fn run(_ctx: Ctx) -> Result<()> {
             { "goal": "Quick mutual NDA",
               "command": "contract new --kind nda --as acme --client meridian --purpose 'evaluation of a joint product' --term-years 3" },
             { "goal": "Non-circumvention agreement protecting an introduction",
-              "command": "contract new --kind ncnda --as boris --client partner --purpose 'introduction to prospective lenders for the transaction' --term-years 2" },
+              "command": "contract new --kind ncnda --as acme --client partner --purpose 'introduction to prospective lenders for the transaction' --term-years 2" },
             { "goal": "Consulting agreement with fixed fee",
               "command": "contract new --kind consulting --as acme --client meridian --purpose 'design a dashboard' --fee fixed:8400:SGD --term-months 3 --deliverable 'Design' --deliverable 'Build'" },
             { "goal": "Interest-free loan with fixed repayment date",
-              "command": "contract new --kind loan --as boris --client friend --term principal_text='£10,000 (ten thousand pounds sterling)' --term repayment_date=2026-12-01 --term interest_text='interest-free'" },
+              "command": "contract new --kind loan --as acme --client friend --term principal_text='£10,000 (ten thousand pounds sterling)' --term repayment_date=2026-12-01 --term interest_text='interest-free'" },
             { "goal": "Pick a template by describing the look",
               "command": "contract template find \"magazine masthead serif\"" },
             { "goal": "Render with no watermark",
               "command": "contract render NDA-acme-2026-0001 --final --open" },
         ],
+        "legal_profiles": ["global", "uk", "us", "singapore"],
         "guardrails": [
+            "Legal profiles select law, court wording and limited notices; they do not certify compliance. Global requires an explicit governing law and venue.",
+            "sign records administrative metadata. It does not collect consent, authenticate a signer, send documents or create an electronic-signature audit trail.",
             "BEFORE creating any issuer or client, run `contract issuer list` and `contract clients list` — the DB is shared with invoice-cli; duplicates pollute both tools.",
             "Run doctor before first use.",
             "Use --json for agents; stdout is data, stderr is diagnostics.",

@@ -1,0 +1,79 @@
+[pack]
+slug = "standard"
+name = "Standard Master Services Agreement (plain English)"
+version = "1.0"
+kind = "msa"
+default_clauses = [
+  "background",
+  "services_via_sow",
+  "fees_general",
+  "term",
+  "confidentiality",
+  "ip_ownership",
+  "warranties",
+  "liability",
+  "termination",
+  "general",
+]
+
+[clauses.background]
+heading = "Background"
+body = """
+{{our_legal_name}} (the “Provider”) provides professional services to clients. {{their_legal_name}} (the “Client”) wishes to engage the Provider on multiple projects over time without renegotiating common terms each time. This agreement sets out those common terms; specific projects are described in separate Statements of Work (each, an “SOW”).
+"""
+
+[clauses.services_via_sow]
+heading = "Services Under SOWs"
+body = """
+From time to time, the parties may sign one or more SOWs that reference this agreement. Each SOW describes the services, deliverables, fees, timing, and any project-specific terms. Each signed SOW is incorporated into this agreement. If there is a conflict between this agreement and an SOW, the SOW controls for that project unless the SOW says otherwise.
+"""
+
+[clauses.fees_general]
+heading = "Fees and Expenses (General)"
+body = """
+Fees, payment schedules, and expense rules are set in each SOW. Unless an SOW says otherwise, invoices are payable within 14 days of receipt and reasonable pre-approved out-of-pocket expenses are reimbursable. Taxes are charged in addition to fees where the Provider is required to charge them.
+"""
+
+[clauses.term]
+heading = "Term"
+body = """
+This agreement takes effect on {{effective_date}} and continues {{term_text}}. Either party may terminate this agreement when no SOWs are in effect by giving the other 30 days’ written notice. Termination of this agreement does not by itself terminate any in-flight SOW; in-flight SOWs continue to be governed by this agreement until they end.
+"""
+
+[clauses.confidentiality]
+heading = "Confidentiality"
+body = """
+Each party will treat the other’s non-public information (including business plans, customer data, financials, and technical materials) with reasonable care, use it only for the engagement, and share it inside its organisation only on a need-to-know basis. This obligation survives {{confidentiality_years}} years after the engagement ends, and does not apply to information that becomes public other than through that party’s fault, was already known on a non-confidential basis, or is independently developed.
+"""
+
+[clauses.ip_ownership]
+heading = "Intellectual Property"
+body = """
+{{ip_assignment_text}}
+
+The Provider keeps ownership of any tools, libraries, methods, frameworks, or general know-how it had before, or developed independently of, the engagement (the Provider’s “Background IP”). To the extent any Background IP is incorporated into a Deliverable, the Provider grants the Client a non-exclusive, perpetual, royalty-free licence to use it as part of that Deliverable.
+"""
+
+[clauses.warranties]
+heading = "Warranties"
+body = """
+The Provider warrants that it will perform the services with reasonable skill and care, in line with industry standards, and that to the best of its knowledge the deliverables will not knowingly infringe any third-party intellectual property. The Provider does not warrant any specific business outcome.
+"""
+
+[clauses.liability]
+heading = "Limitation of Liability"
+body = """
+Neither party is liable to the other for indirect, consequential, or loss-of-profits damages. Each party’s total liability under any SOW is capped at the fees paid or payable under that SOW in the twelve months before the event giving rise to the claim. Nothing in this clause limits liability that cannot be limited under applicable law, including liability for fraud or willful misconduct.
+"""
+
+[clauses.termination]
+heading = "Termination of an SOW"
+body = """
+Either party may terminate an SOW immediately for material breach that is not cured within 15 days of written notice, or if the other party becomes insolvent. Either party may terminate an SOW for convenience by giving the other at least {{termination_notice_days}} days’ written notice, unless the SOW says otherwise. On termination of an SOW, the Client will pay the Provider for services performed up to the termination date and for non-cancellable expenses.
+"""
+
+[clauses.general]
+heading = "General"
+body = """
+This agreement (together with any SOWs) is the whole agreement on its subject and replaces prior discussions. Changes must be in writing signed by both parties. If any part is unenforceable, the rest stays in force. Neither party may assign without the other’s consent, except to an affiliate or successor in connection with a sale of its business. Notices may be given by email to the address on the signature page. This agreement is governed by the laws of {{governing_law}} and the parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+"""

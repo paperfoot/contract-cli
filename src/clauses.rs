@@ -56,8 +56,20 @@ pub fn load_pack(kind: &str, pack_slug: &str) -> Result<Pack> {
         .ok_or_else(|| AppError::NotFound(format!("clause pack '{kind}/{pack_slug}'")))?;
     let text = std::str::from_utf8(&file.data)
         .map_err(|e| AppError::Other(format!("non-utf8 pack {path}: {e}")))?;
-    toml::from_str::<Pack>(text)
-        .map_err(|e| AppError::Other(format!("invalid pack {path}: {e}")))
+    toml::from_str::<Pack>(text).map_err(|e| AppError::Other(format!("invalid pack {path}: {e}")))
+}
+
+pub fn load_pack_version(kind: &str, slug: &str, version: &str) -> Result<Pack> {
+    let current = load_pack(kind, slug)?;
+    if current.pack.version == version {
+        return Ok(current);
+    }
+    let path = format!("archive/{kind}/{slug}-{version}.toml");
+    let file = PackAssets::get(&path).ok_or_else(|| AppError::InvalidInput(format!(
+        "clause pack {kind}/{slug} version {version} is unavailable; refusing to substitute different legal wording"
+    )))?;
+    let text = std::str::from_utf8(&file.data).map_err(|e| AppError::Other(e.to_string()))?;
+    toml::from_str(text).map_err(|e| AppError::Other(format!("invalid historical pack: {e}")))
 }
 
 fn humanize_slug(slug: &str) -> String {
@@ -83,6 +95,9 @@ pub fn list_packs() -> Vec<(String, String)> {
         .filter_map(|p| {
             let p = p.as_ref();
             let (kind, file) = p.split_once('/')?;
+            if kind == "archive" {
+                return None;
+            }
             let pack_slug = file.strip_suffix(".toml")?;
             Some((kind.to_string(), pack_slug.to_string()))
         })
@@ -136,10 +151,7 @@ pub fn resolve(
     let mut out = Vec::with_capacity(included.len());
     for (i, slug) in included.iter().enumerate() {
         let def = pack.clauses.get(slug);
-        let (head_override, body_override) = overrides
-            .get(slug)
-            .cloned()
-            .unwrap_or((None, None));
+        let (head_override, body_override) = overrides.get(slug).cloned().unwrap_or((None, None));
         // Custom clauses (added with --body / --from-file) don't exist in the
         // pack — their heading/body live entirely in the override.
         let heading = match (head_override, def) {
@@ -154,7 +166,7 @@ pub fn resolve(
                 return Err(AppError::NotFound(format!(
                     "clause '{slug}' is not in the pack and has no custom body. \
                      Set one with: contract clauses edit <number> {slug} --body \"…\""
-                )))
+                )));
             }
         };
         out.push(ResolvedClause {

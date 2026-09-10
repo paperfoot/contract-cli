@@ -1,8 +1,9 @@
 [package]
 name = "contract-cli"
-version = "0.2.1"
-edition = "2021"
-description = "Beautiful contracts from the CLI — NDA, NCNDA, consulting, MSA, SOW, service, loan. Plain English, 1-3 pages, agent-friendly."
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Beautiful contracts from the CLI — NDA, NCNDA, consulting, MSA, SOW, service, loan. Versioned clauses, jurisdiction profiles, agent-friendly."
 license = "MIT"
 repository = "https://github.com/paperfoot/contract-cli"
 readme = "README.md"
@@ -21,7 +22,7 @@ finance-core = { path = "../finance-core", version = "0.4" }
 clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "0.8"
+toml = "1.1.6"
 thiserror = "2"
 anyhow = "1"
 rusqlite = { version = "0.33", features = ["bundled", "chrono"] }

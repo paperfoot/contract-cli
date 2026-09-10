@@ -5,7 +5,7 @@
 use std::process::Command;
 
 use crate::error::{AppError, Result};
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 const CRATES_IO_URL: &str = "https://crates.io/api/v1/crates/contract-cli";
 const BREW_FORMULA: &str = "paperfoot/tap/contract";
@@ -41,24 +41,27 @@ pub fn run(ctx: Ctx, check: bool) -> Result<()> {
         )
     };
 
-    if let Ok(cfg) = crate::config::load() {
-        if !cfg.self_update {
-            let report = UpdateReport {
-                current_version: current,
-                latest_version: None,
-                status: "disabled",
-                install_source,
-                update_mode: "disabled",
-                upgrade_command,
-                release_url: RELEASE_URL,
-                requires_skill_reinstall: false,
-                note: Some("self_update = false in config; upgrade via the package manager".into()),
-            };
-            print_success(ctx, &report, |r| {
-                println!("updates disabled by config. Upgrade manually: {}", r.upgrade_command)
-            });
-            return Ok(());
-        }
+    if let Ok(cfg) = crate::config::load()
+        && !cfg.self_update
+    {
+        let report = UpdateReport {
+            current_version: current,
+            latest_version: None,
+            status: "disabled",
+            install_source,
+            update_mode: "disabled",
+            upgrade_command,
+            release_url: RELEASE_URL,
+            requires_skill_reinstall: false,
+            note: Some("self_update = false in config; upgrade via the package manager".into()),
+        };
+        print_success(ctx, &report, |r| {
+            println!(
+                "updates disabled by config. Upgrade manually: {}",
+                r.upgrade_command
+            )
+        });
+        return Ok(());
     }
 
     let latest = match fetch_latest_version() {
@@ -89,7 +92,11 @@ pub fn run(ctx: Ctx, check: bool) -> Result<()> {
     };
 
     let is_newer = version_newer_than(&latest, &current);
-    let status = if is_newer { "update_available" } else { "up_to_date" };
+    let status = if is_newer {
+        "update_available"
+    } else {
+        "up_to_date"
+    };
 
     if check || !is_newer {
         let report = UpdateReport {
@@ -120,10 +127,7 @@ pub fn run(ctx: Ctx, check: bool) -> Result<()> {
     let ok = if install_source == "homebrew" {
         run_cmd("brew", &["upgrade", BREW_FORMULA])?
     } else {
-        run_cmd(
-            "cargo",
-            &["install", "--locked", "--force", "contract-cli"],
-        )?
+        run_cmd("cargo", &["install", "--locked", "--force", "contract-cli"])?
     };
     if !ok {
         return Err(AppError::Transient(

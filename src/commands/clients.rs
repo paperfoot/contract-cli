@@ -1,7 +1,7 @@
 use crate::cli::ClientCmd;
 use crate::db::{self, Client};
 use crate::error::Result;
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 use super::split_multiline_arg;
 
@@ -39,7 +39,9 @@ pub fn run(cmd: ClientCmd, ctx: Ctx) -> Result<()> {
             let id = db::client_create(&conn, &c)?;
             let mut saved = c;
             saved.id = id;
-            print_success(ctx, &saved, |c| println!("added client '{}' (#{})", c.slug, c.id));
+            print_success(ctx, &saved, |c| {
+                println!("added client '{}' (#{})", c.slug, c.id)
+            });
             Ok(())
         }
         ClientCmd::Edit {
@@ -55,15 +57,33 @@ pub fn run(cmd: ClientCmd, ctx: Ctx) -> Result<()> {
             notes,
         } => {
             let mut existing = db::client_by_slug(&conn, &slug)?;
-            if let Some(v) = name { existing.name = v; }
-            if let Some(v) = legal_name { existing.legal_name = Some(v); }
-            if let Some(v) = company_no { existing.company_no = Some(v); }
-            if let Some(v) = jurisdiction { existing.legal_jurisdiction = Some(v); }
-            if let Some(v) = attn { existing.attn = Some(v); }
-            if let Some(v) = country { existing.country = Some(v); }
-            if let Some(v) = address { existing.address = split_multiline_arg(&v); }
-            if let Some(v) = email { existing.email = Some(v); }
-            if let Some(v) = notes { existing.notes = Some(v); }
+            if let Some(v) = name {
+                existing.name = v;
+            }
+            if let Some(v) = legal_name {
+                existing.legal_name = Some(v);
+            }
+            if let Some(v) = company_no {
+                existing.company_no = Some(v);
+            }
+            if let Some(v) = jurisdiction {
+                existing.legal_jurisdiction = Some(v);
+            }
+            if let Some(v) = attn {
+                existing.attn = Some(v);
+            }
+            if let Some(v) = country {
+                existing.country = Some(v);
+            }
+            if let Some(v) = address {
+                existing.address = split_multiline_arg(&v);
+            }
+            if let Some(v) = email {
+                existing.email = Some(v);
+            }
+            if let Some(v) = notes {
+                existing.notes = Some(v);
+            }
             db::client_update(&conn, &existing)?;
             print_success(ctx, &existing, |c| println!("updated client '{}'", c.slug));
             Ok(())
@@ -72,7 +92,9 @@ pub fn run(cmd: ClientCmd, ctx: Ctx) -> Result<()> {
             let list = db::client_list(&conn)?;
             print_success(ctx, &list, |rows| {
                 if rows.is_empty() {
-                    println!("(no clients — add one with: contract clients add <slug> --name X --address ...)");
+                    println!(
+                        "(no clients — add one with: contract clients add <slug> --name X --address ...)"
+                    );
                 } else {
                     for c in rows {
                         println!(

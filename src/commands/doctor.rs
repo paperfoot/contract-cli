@@ -2,7 +2,7 @@ use std::process::Command;
 
 use crate::config;
 use crate::error::{AppError, Result};
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 use crate::typst_assets;
 
 #[derive(serde::Serialize)]

@@ -1,0 +1,92 @@
+[pack]
+slug = "startup"
+name = "Startup services framework"
+version = "2.0"
+kind = "msa"
+default_clauses = ["background", "services_via_sow", "fees_general", "term", "confidentiality", "ip_ownership", "warranties", "liability", "termination", "general", "data_protection", "commercial_scope", "handover"]
+
+[clauses.background]
+heading = "Background"
+body = """
+{{our_legal_name}} (the “Provider”) provides professional services to clients. {{their_legal_name}} (the “Client”) wishes to engage the Provider on multiple projects over time without renegotiating common terms each time. This agreement sets out those common terms; specific projects are described in separate Statements of Work (each, an “SOW”).
+"""
+
+[clauses.services_via_sow]
+heading = "Services Under SOWs"
+body = """
+From time to time, the parties may sign one or more SOWs that reference this agreement. Each SOW describes the services, deliverables, fees, timing, and any project-specific terms. Each signed SOW is incorporated into this agreement. If there is a conflict between this agreement and an SOW, the SOW controls for that project unless the SOW says otherwise.
+"""
+
+[clauses.fees_general]
+heading = "Fees and Expenses (General)"
+body = """
+Fees, payment schedules, and expense rules are set in each SOW. Unless an SOW says otherwise, invoices are payable within 14 days of receipt and reasonable pre-approved out-of-pocket expenses are reimbursable. Taxes are charged in addition to fees where the Provider is required to charge them.
+"""
+
+[clauses.term]
+heading = "Term"
+body = """
+This agreement takes effect on {{effective_date}} and continues {{term_text}}. Either party may terminate this agreement when no SOWs are in effect by giving the other 30 days’ written notice. Termination of this agreement does not by itself terminate any in-flight SOW; in-flight SOWs continue to be governed by this agreement until they end.
+"""
+
+[clauses.confidentiality]
+heading = "Confidentiality"
+body = """
+Each party shall protect the other party's non-public information with reasonable care, use it only to perform this agreement, and disclose it only to personnel, subcontractors and professional advisers who need it for that purpose and owe equivalent duties of confidence. Each party remains responsible for those recipients. These duties do not cover information demonstrably public without breach, already lawfully known without restriction, independently developed, or lawfully received from a third party without restriction. Legally required disclosures are permitted to the minimum extent required, with prior notice where lawful. Nothing restricts protected disclosures to regulators, law enforcement or legal advisers, or the reporting of wrongdoing protected by applicable law. The duties last for {{confidentiality_years}} years after termination, and for trade secrets while they remain protected by applicable law. On request, confidential material shall be returned or deleted, subject to legal retention and inaccessible routine backups, which remain protected.
+"""
+
+[clauses.ip_ownership]
+heading = "Intellectual property"
+body = """
+{{ip_assignment_text}}
+"""
+
+[clauses.warranties]
+heading = "Warranties"
+body = """
+The Provider warrants that it will perform the services with reasonable skill and care, in line with industry standards, and that to the best of its knowledge the deliverables will not knowingly infringe any third-party intellectual property. The Provider does not warrant any specific business outcome.
+"""
+
+[clauses.liability]
+heading = "Liability"
+body = """
+Neither party is liable for indirect or consequential loss. Subject to the exclusions below, each party's total aggregate liability arising out of or in connection with this agreement, whether in contract, tort (including negligence), misrepresentation or otherwise, shall not exceed the fees paid or payable under the affected SOW or SOWs during their first twelve months, or during the twelve months preceding the first event giving rise to the claim, whichever amount is higher. This cap does not reduce the obligation to pay properly due fees.
+
+Nothing excludes or limits liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, or any liability that applicable law does not permit to be excluded or limited. Any restriction applies only to the extent lawful and, where required, reasonable. A separate signed SOW may expressly agree a different cap for that SOW; it must identify this clause and the replacement cap.
+"""
+
+[clauses.termination]
+heading = "Termination of an SOW"
+body = """
+Either party may terminate an SOW immediately for material breach that is not cured within 15 days of written notice, or, to the extent permitted by applicable insolvency law, if the other party becomes insolvent. Either party may terminate an SOW for convenience by giving the other at least {{termination_notice_days}} days’ written notice, unless the SOW says otherwise. On termination of an SOW, the Client will pay the Provider for services performed up to the termination date and for non-cancellable expenses.
+"""
+
+[clauses.general]
+heading = "General provisions"
+body = """
+This agreement is the entire agreement on its subject and supersedes earlier discussions; nothing excludes liability for fraud or fraudulent misrepresentation. Amendments must be in writing and agreed by authorised representatives of both parties. An exchange of emails expressly agreeing a change is sufficient, except where law requires a different formality. A delay in enforcing a right is not a waiver. If a provision is unenforceable, the remaining provisions continue in effect. Assignment of rights requires the other party's written consent, not to be unreasonably withheld; transfer of obligations requires a written novation agreed by all affected parties. No person other than the parties may enforce this agreement except where mandatory law provides otherwise.
+
+Notices shall be sent to the contact email or postal address identified in the Parties section, or a replacement notified in writing. Email notices take effect when receipt is acknowledged by the recipient, excluding automated responses; if not acknowledged, the sender must use delivery with evidence of receipt. This notice method does not govern service of court proceedings. This agreement may be signed in counterparts and by electronic signature where permitted by law. Each signatory confirms authority to bind the relevant party. Recording a signatory's name in software does not itself establish consent or authority.
+
+This agreement and non-contractual obligations arising from it are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}, without preventing urgent interim relief from another court with competent jurisdiction.
+"""
+
+[clauses.data_protection]
+heading = "Data protection and security"
+body = """
+Each party shall comply with applicable data protection law. The parties shall identify their respective controller and processor roles before sharing personal data. Where one party processes personal data on behalf of the other, processing must not begin until they have signed a data processing schedule covering the subject matter, duration, purpose, data types and data subjects; documented instructions; confidentiality; security; approved subprocessors; assistance with rights, breaches and impact assessments; audit information; deletion or return; and lawful international transfers. This agreement alone does not authorise such processing or supply that schedule.
+
+Neither party may put the other party's confidential information or personal data into a public or third-party AI service without prior written authorisation and agreement on retention, training use, security and subprocessors. Each party shall notify the other without undue delay of a security incident affecting the other's information and cooperate in containment and recovery.
+"""
+
+[clauses.commercial_scope]
+heading = "Services, funding and equity"
+body = """
+Each SOW must state its scope, delivery dependencies, payment milestones and any spending cap. Neither a funding discussion nor this agreement promises investment, fundraising success or a commercial outcome. No equity, options, revenue share or success fee is granted under this agreement; any such arrangement requires a separate signed instrument and any necessary corporate and regulatory approvals.
+"""
+
+[clauses.handover]
+heading = "Continuity and handover"
+body = """
+Each SOW shall identify the Client-owned accounts, repositories, domains and deliverables needed to continue operating after the engagement. On expiry or termination, the Provider shall return Client-controlled credentials and Client materials promptly, provide paid-for deliverables and reasonably cooperate in transition. Additional transition work and fees must be agreed in writing. Neither party may use the other's information for model training or publicity without express written permission.
+"""

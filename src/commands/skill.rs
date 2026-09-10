@@ -1,6 +1,6 @@
 use crate::cli::SkillCmd;
 use crate::error::Result;
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 // The skill is a signpost, not a manual: the binary carries all workflow
 // knowledge in agent-info and --help, so the skill body stays tiny and the

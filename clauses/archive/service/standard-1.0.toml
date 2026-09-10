@@ -1,0 +1,81 @@
+[pack]
+slug = "standard"
+name = "Standard Service Agreement (plain English, ongoing)"
+version = "1.0"
+kind = "service"
+default_clauses = [
+  "background",
+  "services",
+  "fees",
+  "term_renewal",
+  "support_changes",
+  "data_handling",
+  "warranties",
+  "liability",
+  "termination",
+  "general",
+]
+
+[clauses.background]
+heading = "Background"
+body = """
+{{our_legal_name}} (the “Provider”) supplies the services described below. {{their_legal_name}} (the “Customer”) wishes to receive them on the terms set out in this agreement.
+"""
+
+[clauses.services]
+heading = "Services"
+body = """
+The Provider will supply: {{purpose}}.
+
+{{deliverables_block}}
+"""
+
+[clauses.fees]
+heading = "Fees"
+body = """
+{{fee_text}}.
+
+Fees are payable within 14 days of invoice. Late amounts may accrue interest at 1% per month. Taxes are added where the Provider is required to charge them.
+"""
+
+[clauses.term_renewal]
+heading = "Term and Renewal"
+body = """
+This agreement starts on {{effective_date}} and continues {{term_text}}. After the initial term, it renews for successive 12-month periods unless either party gives the other at least 30 days’ written notice before the end of the then-current term that it does not wish to renew.
+"""
+
+[clauses.support_changes]
+heading = "Support and Changes"
+body = """
+The Provider will use commercially reasonable efforts to keep the services available and to respond to support requests during normal business hours. The Provider may change non-material features from time to time. Material changes that reduce the services available to the Customer will be communicated in advance, and the Customer may terminate this agreement (without fee) within 30 days of such a change.
+"""
+
+[clauses.data_handling]
+heading = "Data Handling"
+body = """
+The Provider will handle Customer data with reasonable care, will not use it for any purpose other than providing the services and complying with law, and will apply appropriate technical and organisational security measures. The Customer remains the owner of its data. On termination, the Provider will return or delete Customer data within a reasonable period, except as required by law or routine backups.
+"""
+
+[clauses.warranties]
+heading = "Warranties"
+body = """
+The Provider warrants that it will perform the services with reasonable skill and care. The Provider does not warrant that the services will be uninterrupted or error-free.
+"""
+
+[clauses.liability]
+heading = "Limitation of Liability"
+body = """
+Neither party is liable to the other for indirect, consequential, or loss-of-profits damages. Each party’s total liability under this agreement is capped at the fees paid by the Customer in the twelve months before the event giving rise to the claim. Nothing in this clause limits liability that cannot be limited under applicable law.
+"""
+
+[clauses.termination]
+heading = "Termination"
+body = """
+Either party may terminate this agreement immediately for material breach not cured within 15 days of written notice, or if the other party becomes insolvent. The Customer may terminate for convenience by giving the Provider at least {{termination_notice_days}} days’ written notice. The Customer remains liable for fees up to the termination date.
+"""
+
+[clauses.general]
+heading = "General"
+body = """
+This agreement is the whole agreement on its subject. Changes must be in writing signed by both parties. If any part is unenforceable, the rest stays in force. Neither party may assign without the other’s consent, except to an affiliate or successor in connection with a sale of its business. Notices may be given by email to the address on the signature page. This agreement is governed by the laws of {{governing_law}} and the parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+"""

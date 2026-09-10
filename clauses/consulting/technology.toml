@@ -1,0 +1,122 @@
+[pack]
+slug = "technology"
+name = "Technology delivery agreement"
+version = "2.0"
+kind = "consulting"
+default_clauses = ["background", "services", "deliverables", "fees_and_expenses", "timing", "relationship", "ip_ownership", "confidentiality", "warranties", "liability", "termination", "general", "data_protection", "acceptance", "delivery_security", "dependencies"]
+
+[clauses.background]
+heading = "Background"
+body = """
+{{our_legal_name}} (the “Consultant”) provides advisory and delivery services. {{their_legal_name}} (the “Client”) wishes to engage the Consultant in connection with {{purpose}}. This agreement sets out the terms.
+"""
+
+[clauses.services]
+heading = "Services"
+body = """
+The Consultant shall provide the Services expressly described in the Deliverables and any signed change order, exercising reasonable skill and care. No ancillary work is included unless agreed in writing. The Consultant shall keep the Client informed of material progress, dependencies and delays.
+"""
+
+[clauses.deliverables]
+heading = "Deliverables"
+body = """
+The Consultant will deliver the following:
+
+{{deliverables_block}}
+
+If the Client wants something materially outside this list, the parties will agree the change — and any impact on fees or timing — in writing (email is fine) before the additional work begins.
+"""
+
+[clauses.fees_and_expenses]
+heading = "Fees and Expenses"
+body = """
+The Client will pay the Consultant {{fee_text}}.
+
+Invoices are payable within 14 days of receipt. Statutory interest and recovery costs may be claimed on overdue amounts only to the extent available under applicable law; no additional contractual default interest is imposed. Reasonable out-of-pocket expenses (travel, materials, third-party software) are reimbursable when pre-approved in writing.
+"""
+
+[clauses.timing]
+heading = "Timing"
+body = """
+The engagement begins on {{effective_date}} and continues {{term_text}}. The Consultant shall promptly notify the Client of a delay and take reasonable steps to mitigate it. Dates extend only to the extent actually affected by a Client dependency; additional fees require prior written agreement.
+"""
+
+[clauses.relationship]
+heading = "Independent Contractor"
+body = """
+The Consultant is an independent contractor, not an employee, agent, partner, or joint-venture partner of the Client. Nothing in this agreement creates such a relationship. The Consultant is responsible for its own taxes, social contributions, and insurance, and may engage subcontractors provided the Consultant remains responsible for their work.
+"""
+
+[clauses.ip_ownership]
+heading = "Intellectual property"
+body = """
+{{ip_assignment_text}}
+"""
+
+[clauses.confidentiality]
+heading = "Confidentiality"
+body = """
+Each party shall protect the other party's non-public information with reasonable care, use it only to perform this agreement, and disclose it only to personnel, subcontractors and professional advisers who need it for that purpose and owe equivalent duties of confidence. Each party remains responsible for those recipients. These duties do not cover information demonstrably public without breach, already lawfully known without restriction, independently developed, or lawfully received from a third party without restriction. Legally required disclosures are permitted to the minimum extent required, with prior notice where lawful. Nothing restricts protected disclosures to regulators, law enforcement or legal advisers, or the reporting of wrongdoing protected by applicable law. The duties last for {{confidentiality_years}} years after termination, and for trade secrets while they remain protected by applicable law. On request, confidential material shall be returned or deleted, subject to legal retention and inaccessible routine backups, which remain protected.
+"""
+
+[clauses.warranties]
+heading = "Warranties"
+body = """
+Each party warrants its authority to enter this agreement. The Consultant warrants reasonable skill and care, authority to grant the agreed IP rights, and that it shall not knowingly include infringing material. The Client warrants it has the rights needed for materials and instructions it supplies. No specific commercial result is promised.
+"""
+
+[clauses.liability]
+heading = "Liability"
+body = """
+Neither party is liable for indirect or consequential loss. Subject to the exclusions below, each party's total aggregate liability arising out of or in connection with this agreement, whether in contract, tort (including negligence), misrepresentation or otherwise, shall not exceed the total fees paid or payable under this agreement. This cap does not reduce the obligation to pay properly due fees.
+
+Nothing excludes or limits liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, or any liability that applicable law does not permit to be excluded or limited. Any restriction applies only to the extent lawful and, where required, reasonable. A separate signed SOW may expressly agree a different cap for that SOW; it must identify this clause and the replacement cap.
+"""
+
+[clauses.termination]
+heading = "Termination"
+body = """
+Either party may terminate this agreement for convenience by giving the other at least {{termination_notice_days}} days’ written notice. Either party may terminate immediately for material breach that is not cured within 15 days of written notice describing it, or, to the extent permitted by applicable insolvency law, if the other party becomes insolvent. On termination, the Client will pay the Consultant for Services performed up to the termination date and for non-cancellable expenses. Clauses that by their nature should survive (confidentiality, IP, liability, governing law) survive termination.
+"""
+
+[clauses.general]
+heading = "General provisions"
+body = """
+This agreement is the entire agreement on its subject and supersedes earlier discussions; nothing excludes liability for fraud or fraudulent misrepresentation. Amendments must be in writing and agreed by authorised representatives of both parties. An exchange of emails expressly agreeing a change is sufficient, except where law requires a different formality. A delay in enforcing a right is not a waiver. If a provision is unenforceable, the remaining provisions continue in effect. Assignment of rights requires the other party's written consent, not to be unreasonably withheld; transfer of obligations requires a written novation agreed by all affected parties. No person other than the parties may enforce this agreement except where mandatory law provides otherwise.
+
+Notices shall be sent to the contact email or postal address identified in the Parties section, or a replacement notified in writing. Email notices take effect when receipt is acknowledged by the recipient, excluding automated responses; if not acknowledged, the sender must use delivery with evidence of receipt. This notice method does not govern service of court proceedings. This agreement may be signed in counterparts and by electronic signature where permitted by law. Each signatory confirms authority to bind the relevant party. Recording a signatory's name in software does not itself establish consent or authority.
+
+This agreement and non-contractual obligations arising from it are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}, without preventing urgent interim relief from another court with competent jurisdiction.
+"""
+
+[clauses.non_solicit]
+heading = "Non-Solicitation"
+body = """
+While this agreement is in force and for 12 months after it ends, neither party will actively solicit for employment or engagement any employee or contractor of the other with whom it had material contact under this engagement. General recruitment advertising not targeted at those people — and hiring anyone who responds to it — is not a breach.
+"""
+
+[clauses.data_protection]
+heading = "Data protection and security"
+body = """
+Each party shall comply with applicable data protection law. The parties shall identify their respective controller and processor roles before sharing personal data. Where one party processes personal data on behalf of the other, processing must not begin until they have signed a data processing schedule covering the subject matter, duration, purpose, data types and data subjects; documented instructions; confidentiality; security; approved subprocessors; assistance with rights, breaches and impact assessments; audit information; deletion or return; and lawful international transfers. This agreement alone does not authorise such processing or supply that schedule.
+
+Neither party may put the other party's confidential information or personal data into a public or third-party AI service without prior written authorisation and agreement on retention, training use, security and subprocessors. Each party shall notify the other without undue delay of a security incident affecting the other's information and cooperate in containment and recovery.
+"""
+
+[clauses.acceptance]
+heading = "Review and acceptance"
+body = """
+Acceptance shall be assessed against the deliverables and objective acceptance criteria expressly agreed in writing. Within {{acceptance_days}} business days after delivery, the {{their_role}} shall confirm acceptance or give written details of material non-conformities against those criteria. The {{our_role}} shall correct those non-conformities at its own cost within a reasonable period and resubmit for review. Silence alone is not acceptance. A minor defect that does not materially prevent the agreed use shall not justify rejecting otherwise conforming work, but must be corrected. Acceptance does not waive rights relating to latent defects or express warranties. Changes to agreed criteria or additional work require a written change order setting out fees and timing.
+"""
+
+[clauses.delivery_security]
+heading = "Software delivery and security"
+body = """
+The agreed deliverables shall identify supported platforms, source repositories, build and deployment instructions, test criteria and handover materials. The Consultant shall use reasonable secure development practices, restrict access to project secrets, and remediate material security defects in its work discovered before acceptance. Deployment to production requires the Client's written authorisation. The Client shall provide lawful access, maintain backups and approve the production environment. Ongoing hosting, maintenance, uptime commitments and incident response are included only if expressly stated in a signed schedule.
+"""
+
+[clauses.dependencies]
+heading = "Third-party software and AI-assisted work"
+body = """
+The Consultant shall identify material third-party and open-source components, applicable licence terms and recurring costs before delivery. Components imposing source-disclosure or reciprocal licensing duties on Client proprietary code require prior written approval. Third-party rights remain governed by their licences. The Consultant remains responsible for reviewing and testing AI-assisted work against the agreed specification and shall disclose material AI-generated content and any known limitations on the rights it can grant. Use of AI does not reduce its contractual obligations.
+"""

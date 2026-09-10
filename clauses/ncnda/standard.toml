@@ -1,29 +1,9 @@
 [pack]
 slug = "standard"
 name = "Standard Non-Circumvention & Non-Disclosure Agreement (plain English)"
-version = "1.0"
+version = "2.0"
 kind = "ncnda"
-default_clauses = [
-  "purpose",
-  "definitions",
-  "confidentiality",
-  "permitted_disclosures",
-  "non_circumvention",
-  "introducer_role",
-  "prior_dealings",
-  "remedies",
-  "no_obligation",
-  "term",
-  "entire_agreement",
-  "variation",
-  "assignment",
-  "severance",
-  "third_party_rights",
-  "notices",
-  "no_partnership",
-  "counterparts",
-  "governing_law",
-]
+default_clauses = ["purpose", "definitions", "confidentiality", "permitted_disclosures", "non_circumvention", "introducer_role", "prior_dealings", "remedies", "no_obligation", "term", "entire_agreement", "variation", "assignment", "severance", "third_party_rights", "notices", "no_partnership", "counterparts", "governing_law"]
 
 [clauses.purpose]
 heading = "Purpose"
@@ -34,13 +14,11 @@ body = """
 [clauses.definitions]
 heading = "Definitions"
 body = """
-“Confidential Information” means any non-public information one party (the “Disclosing Party”) makes available to the other (the “Receiving Party”) in connection with the Purpose, in any form and whether or not marked confidential. It includes the existence and content of the parties’ discussions, the identity and contact details of any person or entity introduced under this agreement, the terms of any proposed transaction, and any analysis, copy, or derivative of any of the foregoing.
+“Confidential Information” means non-public information disclosed for the Purpose that is identified as confidential or that a reasonable recipient would understand to be confidential from its nature and circumstances. It includes protected introductions and transaction discussions. It excludes information the recipient can demonstrate was lawfully known without restriction, becomes public without breach, is independently developed without use of the information, or is lawfully received from a third party without restriction.
 
-“Introduction” means any introduction, direct or indirect, by one party to the other of a person, entity, asset, transaction, opportunity, or source of funds not already known to the receiving party on a non-confidential basis.
+An “Introduction” is a written identification, for the Purpose, of a specific person or entity and opportunity by one party to the other. A “Protected Contact” is a person or entity identified in that Introduction that was not already lawfully known to the recipient in connection with that opportunity. The parties shall keep a written record of each protected introduction and its date.
 
-“Protected Contact” means any person, entity, asset, transaction, opportunity, or source of funds first made known to a party by or through the other party under or in connection with this agreement.
-
-“Representatives” means, for each party, its directors, officers, employees, professional advisors, and agents.
+“Representatives” means a party's directors, officers, employees, professional advisers and agents who need the information for the Purpose.
 """
 
 [clauses.confidentiality]
@@ -59,32 +37,29 @@ Neither party will make any public statement about the Purpose, this agreement, 
 [clauses.permitted_disclosures]
 heading = "Permitted Disclosures"
 body = """
-A Receiving Party may disclose Confidential Information:
+A Receiving Party may disclose Confidential Information to Representatives who need it for the Purpose and owe equivalent confidentiality duties; the Receiving Party remains responsible for their compliance. Disclosure required by law, regulation or a competent authority is permitted to the minimum extent required, with prior notice where lawful and practicable.
 
-1. to those of its Representatives who need to know it for the Purpose, provided they are bound by confidentiality obligations at least as protective as this agreement — the Receiving Party remains responsible for their compliance; and
-2. to the extent required by law, regulation, or a court or competent authority, provided that (where lawful and practicable) it gives the Disclosing Party prompt prior notice and discloses only what is required.
+Nothing restricts reporting suspected crime, protected whistleblowing, cooperation with a regulator or confidential legal advice. No consent or prior notice is required for a disclosure protected by law where imposing that requirement would restrict the protected right.
 """
 
 [clauses.non_circumvention]
 heading = "Non-Circumvention"
 body = """
-Neither party will, directly or indirectly, use any Confidential Information or any Introduction to circumvent, bypass, or exclude the party by or through whom a Protected Contact was introduced, in relation to any transaction arising from or materially connected with the Purpose and that Protected Contact. This includes soliciting, negotiating, arranging, brokering, concluding, or facilitating such a transaction without the introducing party’s prior written agreement, or otherwise than in a way that preserves the introducing party’s role and any remuneration separately agreed with it. Each party is responsible for any breach of this clause by its Representatives.
+For {{non_circumvention_months}} months from the date of this agreement, neither party shall knowingly use a recorded Introduction or Confidential Information to bypass the introducing party in the specific opportunity described in that Introduction, with the purpose of avoiding a role or remuneration expressly agreed in writing with the introducing party. Each party remains responsible for its Representatives acting on its behalf.
 
-This obligation lasts for {{non_circumvention_months}} months from the date of this agreement; if no period is stated, it lasts for the term of this agreement.
+This clause does not prohibit general competition, independent opportunities, pre-existing relationships or dealings unrelated to the recorded opportunity. It applies only to the extent lawful and reasonably necessary to protect the introducing party's legitimate interest; it does not create a restraint broader than that interest.
 """
 
 [clauses.introducer_role]
 heading = "Introductions and Remuneration"
 body = """
-Each party acknowledges that the Introductions the other makes have commercial value. A party that benefits from an Introduction will not conclude or pursue any transaction arising from it in a way that excludes the introducing party from its role as introducer or from any fee, commission, or other remuneration separately agreed with it.
-
-The parties record the agreed remuneration for Introductions as follows: {{commission_text}}. If none is recorded, remuneration (if any) remains as separately agreed in writing, and the absence of an agreed fee does not weaken the non-circumvention obligations in this agreement.
+Any commission or other remuneration must be expressly agreed in a separate written fee schedule specifying the payer, amount or calculation, trigger, timing and applicable taxes. The current agreed position is: {{commission_text}}. This agreement does not create an implied fee, exclusivity, authority to bind another party, or authority to undertake regulated investment, financial or other intermediary activity. Any required authorisation must be obtained before that activity begins.
 """
 
 [clauses.prior_dealings]
 heading = "Prior and Independent Contacts"
 body = """
-Nothing in this agreement prevents a party from dealing with a contact or opportunity that it can show, by written evidence, it already knew of — or was already dealing with independently — before the relevant Introduction, or that it lawfully obtains from a source other than the other party and without breach of this agreement. The burden of proving prior or independent knowledge rests on the party claiming it.
+Nothing prevents a party from pursuing a contact or opportunity it can demonstrate it already knew or was independently developing before the Introduction, or subsequently obtains lawfully without using the other party's Confidential Information. Contemporaneous records may establish such circumstances.
 """
 
 [clauses.remedies]
@@ -104,13 +79,13 @@ Neither party is obliged by this agreement to proceed with the Purpose or any tr
 [clauses.term]
 heading = "Term and Survival"
 body = """
-This agreement takes effect on {{effective_date}} and continues {{term_text}}. The confidentiality obligations survive for {{confidentiality_years}} years after this agreement ends, and indefinitely for any information that qualifies as a trade secret under applicable law. The non-circumvention obligations survive in accordance with their terms.
+This agreement takes effect on {{effective_date}} and continues {{term_text}}. Confidentiality duties survive for {{confidentiality_years}} years after this agreement ends, and for trade secrets while they remain protected under applicable law. The non-circumvention period is measured from the agreement date as stated in that clause and is not extended by termination. On request, Confidential Information shall be returned or deleted, except legally required records and inaccessible routine backups, which remain protected.
 """
 
 [clauses.entire_agreement]
 heading = "Entire Agreement"
 body = """
-This agreement is the entire agreement between the parties on its subject and replaces any prior discussions or arrangements. Neither party has relied on any statement not set out in it.
+This agreement is the entire agreement on its subject and supersedes earlier discussions. Nothing excludes or limits liability for fraud, fraudulent misrepresentation or any liability that cannot lawfully be excluded.
 """
 
 [clauses.variation]
@@ -122,7 +97,7 @@ Changes to this agreement must be in writing and signed by both parties. A failu
 [clauses.assignment]
 heading = "Assignment"
 body = """
-Neither party may assign or transfer any of its rights or obligations under this agreement without the other party’s prior written consent.
+Assignment of rights requires the other party's prior written consent. Transfer of obligations requires a written novation agreed by all affected parties.
 """
 
 [clauses.severance]
@@ -132,15 +107,15 @@ If any provision of this agreement is or becomes invalid or unenforceable, it is
 """
 
 [clauses.third_party_rights]
-heading = "Third-Party Rights"
+heading = "Third-party rights"
 body = """
-A person who is not a party to this agreement has no right to enforce any of its terms, whether under the Contracts (Rights of Third Parties) Act 1999 or otherwise.
+A person who is not a party to this agreement has no right to enforce its terms, except where mandatory law provides otherwise.
 """
 
 [clauses.notices]
 heading = "Notices"
 body = """
-Notices under this agreement must be in writing and sent to the address or email of the relevant party on the signature page, or as later notified in writing.
+Notices must be in writing and sent to the contact email or postal address in the Parties section, or a replacement notified in writing. An email takes effect when receipt is acknowledged by the recipient, excluding automated responses. If no acknowledgement is received, the sender must use delivery with evidence of receipt. This clause does not govern service of court proceedings.
 """
 
 [clauses.no_partnership]
@@ -150,9 +125,9 @@ Nothing in this agreement creates a partnership, joint venture, agency, or emplo
 """
 
 [clauses.counterparts]
-heading = "Counterparts and Electronic Signatures"
+heading = "Counterparts and signatures"
 body = """
-This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — are valid and binding.
+This agreement may be signed in counterparts and by electronic signature where applicable law permits and all required execution formalities are met. Each signatory confirms authority to bind the party for whom they sign. A typed name recorded in administrative software is not, by itself, proof of the signatory's consent.
 """
 
 [clauses.governing_law]

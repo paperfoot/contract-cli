@@ -1,7 +1,7 @@
 use crate::cli::IssuerCmd;
 use crate::db::{self, Issuer};
 use crate::error::{AppError, Result};
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 use crate::tax::Jurisdiction;
 
 use super::split_multiline_arg;
@@ -70,21 +70,40 @@ pub fn run(cmd: IssuerCmd, ctx: Ctx) -> Result<()> {
             output_dir,
         } => {
             let mut existing = db::issuer_by_slug(&conn, &slug)?;
-            if let Some(v) = name { existing.name = v; }
-            if let Some(v) = legal_name { existing.legal_name = Some(v); }
-            if let Some(v) = jurisdiction {
-                existing.jurisdiction = Jurisdiction::from_str(&v).ok_or_else(|| {
-                    AppError::InvalidInput(format!("unknown jurisdiction '{v}'"))
-                })?;
+            if let Some(v) = name {
+                existing.name = v;
             }
-            if let Some(v) = tax_id { existing.tax_id = Some(v); }
-            if let Some(v) = company_no { existing.company_no = Some(v); }
-            if let Some(v) = address { existing.address = split_multiline_arg(&v); }
-            if let Some(v) = email { existing.email = Some(v); }
-            if let Some(v) = phone { existing.phone = Some(v); }
-            if logo_clear { existing.logo_path = None; }
-            if let Some(v) = logo { existing.logo_path = Some(v); }
-            if let Some(v) = output_dir { existing.default_output_dir = Some(v); }
+            if let Some(v) = legal_name {
+                existing.legal_name = Some(v);
+            }
+            if let Some(v) = jurisdiction {
+                existing.jurisdiction = Jurisdiction::from_str(&v)
+                    .ok_or_else(|| AppError::InvalidInput(format!("unknown jurisdiction '{v}'")))?;
+            }
+            if let Some(v) = tax_id {
+                existing.tax_id = Some(v);
+            }
+            if let Some(v) = company_no {
+                existing.company_no = Some(v);
+            }
+            if let Some(v) = address {
+                existing.address = split_multiline_arg(&v);
+            }
+            if let Some(v) = email {
+                existing.email = Some(v);
+            }
+            if let Some(v) = phone {
+                existing.phone = Some(v);
+            }
+            if logo_clear {
+                existing.logo_path = None;
+            }
+            if let Some(v) = logo {
+                existing.logo_path = Some(v);
+            }
+            if let Some(v) = output_dir {
+                existing.default_output_dir = Some(v);
+            }
             db::issuer_update(&conn, &existing)?;
             print_success(ctx, &existing, |i| println!("updated issuer '{}'", i.slug));
             Ok(())
@@ -93,7 +112,9 @@ pub fn run(cmd: IssuerCmd, ctx: Ctx) -> Result<()> {
             let list = db::issuer_list(&conn)?;
             print_success(ctx, &list, |rows| {
                 if rows.is_empty() {
-                    println!("(no issuers — add one with: contract issuer add <slug> --name X --address ...)");
+                    println!(
+                        "(no issuers — add one with: contract issuer add <slug> --name X --address ...)"
+                    );
                 } else {
                     for i in rows {
                         println!(

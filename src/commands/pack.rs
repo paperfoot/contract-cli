@@ -1,7 +1,7 @@
-use crate::cli::PackCmd;
 use crate::clauses;
+use crate::cli::PackCmd;
 use crate::error::Result;
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 pub fn run(cmd: PackCmd, ctx: Ctx) -> Result<()> {
     match cmd {

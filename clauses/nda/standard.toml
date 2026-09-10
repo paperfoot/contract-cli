@@ -1,29 +1,9 @@
 [pack]
 slug = "standard"
 name = "Standard NDA (plain English)"
-version = "1.1"
+version = "2.0"
 kind = "nda"
-default_clauses = [
-  "purpose",
-  "definitions",
-  "obligations",
-  "exclusions",
-  "permitted_disclosures",
-  "term",
-  "return_or_destroy",
-  "no_license",
-  "no_obligation",
-  "remedies",
-  "entire_agreement",
-  "variation",
-  "severance",
-  "assignment",
-  "notices",
-  "counterparts",
-  "third_party_rights",
-  "no_partnership",
-  "governing_law",
-]
+default_clauses = ["purpose", "definitions", "obligations", "exclusions", "permitted_disclosures", "term", "return_or_destroy", "no_license", "no_obligation", "remedies", "entire_agreement", "variation", "severance", "assignment", "notices", "counterparts", "third_party_rights", "no_partnership", "governing_law", "protected_disclosures"]
 
 [clauses.purpose]
 heading = "Purpose"
@@ -32,9 +12,11 @@ body = """
 """
 
 [clauses.definitions]
-heading = "Confidential Information"
+heading = "Confidential information"
 body = """
-“Confidential Information” means any information — technical, commercial, financial, or otherwise — that one party makes available to the other in connection with the Purpose, whether shared in writing, verbally, or by any other means, and whether or not marked “confidential”. It includes information about products, research, methods, customers, finances, plans, and personnel.
+{{nda_definition}}
+
+Confidential Information includes technical, commercial and financial information disclosed in connection with the Purpose in any form, including copies and analyses, where it is marked confidential or a reasonable person would understand it to be confidential given its nature and the circumstances.
 """
 
 [clauses.obligations]
@@ -68,9 +50,9 @@ The receiving party may share the Confidential Information with its directors, e
 """
 
 [clauses.term]
-heading = "Term and Survival"
+heading = "Term and survival"
 body = """
-This agreement takes effect on {{effective_date}} and continues {{term_text}}. The confidentiality obligations in this agreement survive for {{confidentiality_years}} years after that, after which the information may be freely used unless it qualifies for trade-secret protection under applicable law, in which case the obligations survive for as long as the information remains a trade secret.
+This agreement takes effect on {{effective_date}} and continues {{term_text}}. Either party may end the disclosure period by written notice. The receiving party's confidentiality and restricted-use obligations continue for {{confidentiality_years}} years after expiry or termination, and for trade secrets for as long as protected by applicable law. Expiry does not grant any intellectual-property licence or override data protection law.
 """
 
 [clauses.return_or_destroy]
@@ -104,9 +86,9 @@ This agreement is governed by the laws of {{governing_law}}. The parties submit 
 """
 
 [clauses.entire_agreement]
-heading = "Entire Agreement"
+heading = "Entire agreement"
 body = """
-This agreement is the whole agreement between the parties on its subject and replaces prior discussions. Neither party has relied on any statement not set out in it.
+This agreement is the entire agreement on its subject and supersedes earlier discussions. Nothing excludes or limits liability for fraud or fraudulent misrepresentation or any liability that cannot lawfully be excluded.
 """
 
 [clauses.variation]
@@ -124,25 +106,25 @@ If any part of this agreement is found invalid or unenforceable, that part is de
 [clauses.assignment]
 heading = "Assignment"
 body = """
-Neither party may assign its rights or obligations under this agreement without the other’s written consent, except to an affiliate or successor in connection with a sale of its business.
+Assignment of rights requires the other party's prior written consent. Transfer of obligations requires a written novation agreed by all affected parties.
 """
 
 [clauses.notices]
 heading = "Notices"
 body = """
-Notices under this agreement must be in writing and sent to the email or address on the signature page, or as later notified in writing.
+Notices must be in writing and sent to the contact email or postal address in the Parties section, or a replacement notified in writing. An email takes effect when receipt is acknowledged by the recipient, excluding automated responses. If no acknowledgement is received, the sender must use delivery with evidence of receipt. This clause does not govern service of court proceedings.
 """
 
 [clauses.counterparts]
-heading = "Counterparts and Electronic Signatures"
+heading = "Counterparts and signatures"
 body = """
-This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — are valid and binding.
+This agreement may be signed in counterparts and by electronic signature where applicable law permits and all required execution formalities are met. Each signatory confirms authority to bind the party for whom they sign. A typed name recorded in administrative software is not, by itself, proof of the signatory's consent.
 """
 
 [clauses.third_party_rights]
-heading = "Third-Party Rights"
+heading = "Third-party rights"
 body = """
-A person who is not a party to this agreement has no right to enforce any of its terms, whether under the Contracts (Rights of Third Parties) Act 1999 or otherwise.
+A person who is not a party to this agreement has no right to enforce its terms, except where mandatory law provides otherwise.
 """
 
 [clauses.no_partnership]
@@ -150,8 +132,6 @@ heading = "No Partnership"
 body = """
 Nothing in this agreement creates a partnership, joint venture, agency, or employment relationship between the parties.
 """
-
-# Optional clauses — not in the default set; add with --include.
 
 [clauses.non_circumvention]
 heading = "Non-Circumvention"
@@ -163,4 +143,10 @@ Neither party will use the other’s Confidential Information, or any introducti
 heading = "Non-Solicitation"
 body = """
 While this agreement is in force and for 12 months after it ends, neither party will actively solicit for employment or engagement any employee or contractor of the other with whom it had material contact in connection with the Purpose. General recruitment advertising not targeted at those people — and hiring anyone who responds to it — is not a breach.
+"""
+
+[clauses.protected_disclosures]
+heading = "Protected disclosures"
+body = """
+Nothing in this agreement prevents either party from reporting suspected crime to law enforcement, making a disclosure protected by applicable whistleblowing law, cooperating with a regulator, or obtaining confidential legal advice. No prior consent or notice is required where law prohibits that requirement.
 """

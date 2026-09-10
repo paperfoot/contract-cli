@@ -1,7 +1,7 @@
 use crate::cli::KindsCmd;
 use crate::error::{AppError, Result};
 use crate::kinds;
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 #[derive(serde::Serialize)]
 struct KindInfo {

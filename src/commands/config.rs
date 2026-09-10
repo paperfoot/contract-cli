@@ -1,7 +1,7 @@
 use crate::cli::ConfigCmd;
 use crate::config;
 use crate::error::{AppError, Result};
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 fn parse_bool(key: &str, value: &str) -> Result<bool> {
     match value.to_lowercase().as_str() {
@@ -17,11 +17,9 @@ pub fn run(cmd: ConfigCmd, ctx: Ctx) -> Result<()> {
     match cmd {
         ConfigCmd::Show => {
             let cfg = config::load()?;
-            print_success(ctx, &cfg, |c| {
-                match toml::to_string_pretty(c) {
-                    Ok(t) => print!("{t}"),
-                    Err(_) => println!("{c:?}"),
-                }
+            print_success(ctx, &cfg, |c| match toml::to_string_pretty(c) {
+                Ok(t) => print!("{t}"),
+                Err(_) => println!("{c:?}"),
             });
             Ok(())
         }
@@ -35,9 +33,18 @@ pub fn run(cmd: ConfigCmd, ctx: Ctx) -> Result<()> {
             let mut cfg = config::load()?;
             match key.as_str() {
                 "default_issuer" => {
-                    cfg.default_issuer = if value == "unset" { None } else { Some(value.clone()) };
+                    cfg.default_issuer = if value == "unset" {
+                        None
+                    } else {
+                        Some(value.clone())
+                    };
                 }
                 "default_template" => {
+                    if !crate::typst_assets::has_template(&value)? {
+                        return Err(AppError::InvalidInput(format!(
+                            "unknown contract template {value}; run contract template list"
+                        )));
+                    }
                     cfg.default_template = value.clone();
                 }
                 "open_pdf" => {

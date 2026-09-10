@@ -4,7 +4,7 @@
 use rust_embed::RustEmbed;
 
 use crate::config;
-use crate::error::Result;
+use crate::error::{AppError, Result};
 
 #[derive(RustEmbed)]
 #[folder = "typst/"]
@@ -40,6 +40,7 @@ pub fn template_dir() -> Result<std::path::PathBuf> {
 }
 
 pub fn template_path(name: &str) -> Result<std::path::PathBuf> {
+    validate_name(name)?;
     Ok(template_dir()?.join(format!("{name}.typ")))
 }
 
@@ -51,10 +52,10 @@ pub fn list_templates() -> Result<Vec<String>> {
         for entry in std::fs::read_dir(&dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("typ") {
-                if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
-                    names.push(name.to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("typ")
+                && let Some(name) = path.file_stem().and_then(|s| s.to_str())
+            {
+                names.push(name.to_string());
             }
         }
     }
@@ -62,9 +63,24 @@ pub fn list_templates() -> Result<Vec<String>> {
     Ok(names)
 }
 
+pub fn validate_name(name: &str) -> Result<()> {
+    if name.is_empty()
+        || !name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(AppError::InvalidInput(
+            "template names may contain only letters, digits, hyphens and underscores".into(),
+        ));
+    }
+    Ok(())
+}
 pub fn has_template(name: &str) -> Result<bool> {
-    ensure_extracted()?;
-    Ok(template_path(name)?.exists())
+    validate_name(name)?;
+    if Assets::get(&format!("templates/{name}.typ")).is_some() {
+        return Ok(true);
+    }
+    Ok(template_path(name)?.is_file())
 }
 
 /// Per-template metadata, parsed from the `//!` doc-comment header at the top
@@ -117,10 +133,7 @@ pub fn template_meta(name: &str) -> Result<TemplateMeta> {
 }
 
 pub fn list_template_meta() -> Result<Vec<TemplateMeta>> {
-    list_templates()?
-        .iter()
-        .map(|n| template_meta(n))
-        .collect()
+    list_templates()?.iter().map(|n| template_meta(n)).collect()
 }
 
 fn split_list(s: &str) -> Vec<String> {

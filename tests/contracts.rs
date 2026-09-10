@@ -99,7 +99,10 @@ fn agent_info_has_required_schema_keys() {
     }
     assert_eq!(m["auto_json_when_piped"], true);
     for code in ["0", "1", "2", "3", "4"] {
-        assert!(m["exit_codes"].get(code).is_some(), "exit code {code} documented");
+        assert!(
+            m["exit_codes"].get(code).is_some(),
+            "exit code {code} documented"
+        );
     }
     assert!(m["global_flags"].get("--json").is_some());
     assert!(m["global_flags"].get("--quiet").is_some());
@@ -113,7 +116,9 @@ fn agent_info_commands_are_canonical_objects_and_routable() {
     let commands = m["commands"].as_object().expect("commands object");
     assert!(!commands.is_empty());
     for (key, value) in commands {
-        let obj = value.as_object().unwrap_or_else(|| panic!("`{key}` is an object"));
+        let obj = value
+            .as_object()
+            .unwrap_or_else(|| panic!("`{key}` is an object"));
         assert!(obj.contains_key("description"), "`{key}` has description");
         assert!(obj.contains_key("args"), "`{key}` has args");
         assert!(obj.contains_key("options"), "`{key}` has options");
@@ -144,7 +149,11 @@ fn template_list_returns_metadata() {
 #[test]
 fn kinds_find_resolves_non_circumvention_language() {
     let out = contract()
-        .args(["kinds", "find", "stop them going around me to steal my contact"])
+        .args([
+            "kinds",
+            "find",
+            "stop them going around me to steal my contact",
+        ])
         .assert()
         .success();
     let v: serde_json::Value = serde_json::from_slice(&out.get_output().stdout).unwrap();
@@ -185,9 +194,22 @@ fn new_rejects_unknown_kind() {
 
 #[test]
 fn new_rejects_bad_fee_specs() {
-    for fee in ["fixed:nan:SGD", "fixed:0:SGD", "fixed:-5:SGD", "retainer:5000:SGD/month/x:y"] {
+    for fee in [
+        "fixed:nan:SGD",
+        "fixed:0:SGD",
+        "fixed:-5:SGD",
+        "retainer:5000:SGD/month/x:y",
+    ] {
         contract()
-            .args(["new", "--kind", "consulting", "--client", "nobody", "--fee", fee])
+            .args([
+                "new",
+                "--kind",
+                "consulting",
+                "--client",
+                "nobody",
+                "--fee",
+                fee,
+            ])
             .assert()
             .code(3);
     }
@@ -196,11 +218,27 @@ fn new_rejects_bad_fee_specs() {
 #[test]
 fn new_rejects_bad_enum_values() {
     contract()
-        .args(["new", "--kind", "nda", "--client", "nobody", "--mutuality", "Mutual-ish"])
+        .args([
+            "new",
+            "--kind",
+            "nda",
+            "--client",
+            "nobody",
+            "--mutuality",
+            "Mutual-ish",
+        ])
         .assert()
         .code(3);
     contract()
-        .args(["new", "--kind", "nda", "--client", "nobody", "--term-months", "0"])
+        .args([
+            "new",
+            "--kind",
+            "nda",
+            "--client",
+            "nobody",
+            "--term-months",
+            "0",
+        ])
         .assert()
         .code(3);
 }

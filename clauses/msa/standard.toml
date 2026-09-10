@@ -1,20 +1,9 @@
 [pack]
 slug = "standard"
 name = "Standard Master Services Agreement (plain English)"
-version = "1.0"
+version = "2.0"
 kind = "msa"
-default_clauses = [
-  "background",
-  "services_via_sow",
-  "fees_general",
-  "term",
-  "confidentiality",
-  "ip_ownership",
-  "warranties",
-  "liability",
-  "termination",
-  "general",
-]
+default_clauses = ["background", "services_via_sow", "fees_general", "term", "confidentiality", "ip_ownership", "warranties", "liability", "termination", "general", "data_protection"]
 
 [clauses.background]
 heading = "Background"
@@ -43,15 +32,13 @@ This agreement takes effect on {{effective_date}} and continues {{term_text}}. E
 [clauses.confidentiality]
 heading = "Confidentiality"
 body = """
-Each party will treat the other’s non-public information (including business plans, customer data, financials, and technical materials) with reasonable care, use it only for the engagement, and share it inside its organisation only on a need-to-know basis. This obligation survives {{confidentiality_years}} years after the engagement ends, and does not apply to information that becomes public other than through that party’s fault, was already known on a non-confidential basis, or is independently developed.
+Each party shall protect the other party's non-public information with reasonable care, use it only to perform this agreement, and disclose it only to personnel, subcontractors and professional advisers who need it for that purpose and owe equivalent duties of confidence. Each party remains responsible for those recipients. These duties do not cover information demonstrably public without breach, already lawfully known without restriction, independently developed, or lawfully received from a third party without restriction. Legally required disclosures are permitted to the minimum extent required, with prior notice where lawful. Nothing restricts protected disclosures to regulators, law enforcement or legal advisers, or the reporting of wrongdoing protected by applicable law. The duties last for {{confidentiality_years}} years after termination, and for trade secrets while they remain protected by applicable law. On request, confidential material shall be returned or deleted, subject to legal retention and inaccessible routine backups, which remain protected.
 """
 
 [clauses.ip_ownership]
-heading = "Intellectual Property"
+heading = "Intellectual property"
 body = """
 {{ip_assignment_text}}
-
-The Provider keeps ownership of any tools, libraries, methods, frameworks, or general know-how it had before, or developed independently of, the engagement (the Provider’s “Background IP”). To the extent any Background IP is incorporated into a Deliverable, the Provider grants the Client a non-exclusive, perpetual, royalty-free licence to use it as part of that Deliverable.
 """
 
 [clauses.warranties]
@@ -61,19 +48,33 @@ The Provider warrants that it will perform the services with reasonable skill an
 """
 
 [clauses.liability]
-heading = "Limitation of Liability"
+heading = "Liability"
 body = """
-Neither party is liable to the other for indirect, consequential, or loss-of-profits damages. Each party’s total liability under any SOW is capped at the fees paid or payable under that SOW in the twelve months before the event giving rise to the claim. Nothing in this clause limits liability that cannot be limited under applicable law, including liability for fraud or willful misconduct.
+Neither party is liable for indirect or consequential loss. Subject to the exclusions below, each party's total aggregate liability arising out of or in connection with this agreement, whether in contract, tort (including negligence), misrepresentation or otherwise, shall not exceed the fees paid or payable under the affected SOW or SOWs during their first twelve months, or during the twelve months preceding the first event giving rise to the claim, whichever amount is higher. This cap does not reduce the obligation to pay properly due fees.
+
+Nothing excludes or limits liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, or any liability that applicable law does not permit to be excluded or limited. Any restriction applies only to the extent lawful and, where required, reasonable. A separate signed SOW may expressly agree a different cap for that SOW; it must identify this clause and the replacement cap.
 """
 
 [clauses.termination]
 heading = "Termination of an SOW"
 body = """
-Either party may terminate an SOW immediately for material breach that is not cured within 15 days of written notice, or if the other party becomes insolvent. Either party may terminate an SOW for convenience by giving the other at least {{termination_notice_days}} days’ written notice, unless the SOW says otherwise. On termination of an SOW, the Client will pay the Provider for services performed up to the termination date and for non-cancellable expenses.
+Either party may terminate an SOW immediately for material breach that is not cured within 15 days of written notice, or, to the extent permitted by applicable insolvency law, if the other party becomes insolvent. Either party may terminate an SOW for convenience by giving the other at least {{termination_notice_days}} days’ written notice, unless the SOW says otherwise. On termination of an SOW, the Client will pay the Provider for services performed up to the termination date and for non-cancellable expenses.
 """
 
 [clauses.general]
-heading = "General"
+heading = "General provisions"
 body = """
-This agreement (together with any SOWs) is the whole agreement on its subject and replaces prior discussions. Changes must be in writing signed by both parties. If any part is unenforceable, the rest stays in force. Neither party may assign without the other’s consent, except to an affiliate or successor in connection with a sale of its business. Notices may be given by email to the address on the signature page. This agreement is governed by the laws of {{governing_law}} and the parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+This agreement is the entire agreement on its subject and supersedes earlier discussions; nothing excludes liability for fraud or fraudulent misrepresentation. Amendments must be in writing and agreed by authorised representatives of both parties. An exchange of emails expressly agreeing a change is sufficient, except where law requires a different formality. A delay in enforcing a right is not a waiver. If a provision is unenforceable, the remaining provisions continue in effect. Assignment of rights requires the other party's written consent, not to be unreasonably withheld; transfer of obligations requires a written novation agreed by all affected parties. No person other than the parties may enforce this agreement except where mandatory law provides otherwise.
+
+Notices shall be sent to the contact email or postal address identified in the Parties section, or a replacement notified in writing. Email notices take effect when receipt is acknowledged by the recipient, excluding automated responses; if not acknowledged, the sender must use delivery with evidence of receipt. This notice method does not govern service of court proceedings. This agreement may be signed in counterparts and by electronic signature where permitted by law. Each signatory confirms authority to bind the relevant party. Recording a signatory's name in software does not itself establish consent or authority.
+
+This agreement and non-contractual obligations arising from it are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}, without preventing urgent interim relief from another court with competent jurisdiction.
+"""
+
+[clauses.data_protection]
+heading = "Data protection and security"
+body = """
+Each party shall comply with applicable data protection law. The parties shall identify their respective controller and processor roles before sharing personal data. Where one party processes personal data on behalf of the other, processing must not begin until they have signed a data processing schedule covering the subject matter, duration, purpose, data types and data subjects; documented instructions; confidentiality; security; approved subprocessors; assistance with rights, breaches and impact assessments; audit information; deletion or return; and lawful international transfers. This agreement alone does not authorise such processing or supply that schedule.
+
+Neither party may put the other party's confidential information or personal data into a public or third-party AI service without prior written authorisation and agreement on retention, training use, security and subprocessors. Each party shall notify the other without undue delay of a security incident affecting the other's information and cooperate in containment and recovery.
 """

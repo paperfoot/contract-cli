@@ -24,6 +24,7 @@ use crate::typst_assets;
 #[serde(rename_all = "kebab-case")]
 pub struct ContractRenderData {
     pub kind: String,
+    pub paper: String,
     /// Formal document type — the title of the page (e.g. "Consulting
     /// Services Agreement", "Mutual Non-Disclosure Agreement"). This is
     /// what real contracts put at the top, not the kind tag from the CLI.
@@ -54,7 +55,7 @@ pub struct ContractRenderData {
     pub our_party: PartyData,
     pub their_party: PartyData,
     /// Parties as numbered prose lines, the traditional UK contract format:
-    ///   "**BORIS DJORDJEVIC** of 199 Gloucester Terrace, London W2 6LD,
+    ///   "**ALEX MORGAN** of 10 Example Street, London,
     ///    United Kingdom (the \"Consultant\")"
     /// Templates render them as a numbered list "(1) … ; and  (2) ….".
     pub parties_prose: Vec<String>,
@@ -130,18 +131,26 @@ fn kind_label(kind: &str, terms: &serde_json::Value) -> String {
 
 fn capitalize(s: &str) -> String {
     let mut chars = s.chars();
-    chars.next().map(|c| c.to_uppercase().collect::<String>() + chars.as_str())
+    chars
+        .next()
+        .map(|c| c.to_uppercase().collect::<String>() + chars.as_str())
         .unwrap_or_default()
 }
 
 fn party_role_labels(kind: &str, terms: &serde_json::Value) -> (String, String) {
     match kind {
         "nda" => {
-            let mutuality = terms.get("mutuality").and_then(|v| v.as_str()).unwrap_or("mutual");
+            let mutuality = terms
+                .get("mutuality")
+                .and_then(|v| v.as_str())
+                .unwrap_or("mutual");
             if mutuality == "mutual" {
                 ("Party A".into(), "Party B".into())
             } else {
-                let disclosing = terms.get("disclosing_side").and_then(|v| v.as_str()).unwrap_or("us");
+                let disclosing = terms
+                    .get("disclosing_side")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("us");
                 if disclosing == "us" {
                     ("Disclosing Party".into(), "Receiving Party".into())
                 } else {
@@ -162,7 +171,11 @@ fn jurisdiction_phrase(law: &str) -> String {
     let lower = l.to_lowercase();
     if lower.contains("singapore") {
         "the courts of Singapore".into()
-    } else if lower.contains("england") || lower.contains("wales") || lower.contains("united kingdom") || lower == "uk" {
+    } else if lower.contains("england")
+        || lower.contains("wales")
+        || lower.contains("united kingdom")
+        || lower == "uk"
+    {
         "the courts of England and Wales".into()
     } else if lower.contains("delaware") {
         "the state and federal courts located in Delaware".into()
@@ -209,7 +222,11 @@ fn term_short(c: &Contract) -> String {
     } else if let Some(m) = c.term_months {
         if m % 12 == 0 {
             let y = m / 12;
-            if y == 1 { "1 year".into() } else { format!("{y} years") }
+            if y == 1 {
+                "1 year".into()
+            } else {
+                format!("{y} years")
+            }
         } else if m == 1 {
             "1 month".into()
         } else {
@@ -240,14 +257,32 @@ fn fee_short(c: &Contract) -> Option<String> {
     })
 }
 
-fn ip_assignment_text(terms: &serde_json::Value) -> String {
-    let mode = terms.get("ip_assignment").and_then(|v| v.as_str()).unwrap_or("client");
+fn legacy_ip_assignment_text(terms: &serde_json::Value) -> String {
+    let mode = terms
+        .get("ip_assignment")
+        .and_then(|v| v.as_str())
+        .unwrap_or("client");
     match mode {
         "client" => "All deliverables produced specifically for the Client under this engagement (the “Deliverables”) belong to the Client. The Consultant assigns to the Client, on payment of the relevant fees, all right, title, and interest in the Deliverables.".into(),
         "consultant" | "provider" => "The Consultant retains ownership of all deliverables. The Client receives a non-exclusive, perpetual, worldwide, royalty-free licence to use them for its internal business purposes.".into(),
         "shared" => "The parties jointly own the deliverables. Each party may use them for any purpose without accounting to the other.".into(),
         _ => "All deliverables produced specifically for the Client under this engagement belong to the Client, on payment of the relevant fees.".into(),
     }
+}
+
+fn ip_assignment_text(terms: &serde_json::Value, our: &str, their: &str) -> String {
+    let mode = terms
+        .get("ip_assignment")
+        .and_then(|v| v.as_str())
+        .unwrap_or("client");
+    let disposition = match mode {
+        "client" => format!("Upon payment of the fees attributable to the final deliverables expressly identified in the agreed scope (the ‘Deliverables’), the {our} hereby assigns to the {their}, by way of present assignment of existing and future rights to the extent permitted by law, all intellectual property rights it owns in those Deliverables, excluding Background IP and third-party materials. The {our} shall obtain necessary rights from its personnel and execute reasonable further documents to give effect to this assignment. Until payment, the {their} may use the Deliverables solely for review and acceptance."),
+        "shared" => "The parties shall agree a separate signed schedule specifying ownership shares, exploitation, licensing, enforcement and accounting before creating jointly owned Deliverables. Pending that agreement, each party retains ownership of its own contributions; neither party may commercialise the other's contribution without written permission.".to_string(),
+        _ => format!("The {our} retains ownership of the Deliverables. On payment of the applicable fees, the {their} receives a non-exclusive, perpetual, worldwide, royalty-free licence to use and adapt the Deliverables for its internal business purposes, and to allow service providers to do so on its behalf. Resale, sublicensing for third-party use and public distribution require an express written licence."),
+    };
+    format!(
+        "{disposition}\n\nEach party retains its pre-existing or independently developed tools, libraries, methods and know-how (‘Background IP’). On payment, the {our} grants the {their} a non-exclusive, perpetual, worldwide, royalty-free licence to use, reproduce and adapt its Background IP incorporated into Deliverables, and to permit its customers and service providers to use it, solely as needed for the agreed use of those Deliverables. Third-party materials remain subject to disclosed third-party licences. Moral rights are waived only to the extent lawfully permitted and expressly agreed in writing by the relevant rights holder; otherwise necessary consents shall be obtained."
+    )
 }
 
 fn fee_text(c: &Contract) -> Option<String> {
@@ -312,8 +347,21 @@ fn esc_markup(s: &str) -> String {
         }
         if matches!(
             c,
-            '\\' | '#' | '*' | '_' | '`' | '$' | '<' | '>' | '@' | '[' | ']' | '~' | '/' | '-'
-                | '=' | '+'
+            '\\' | '#'
+                | '*'
+                | '_'
+                | '`'
+                | '$'
+                | '<'
+                | '>'
+                | '@'
+                | '['
+                | ']'
+                | '~'
+                | '/'
+                | '-'
+                | '='
+                | '+'
         ) {
             out.push('\\');
         }
@@ -328,7 +376,10 @@ fn esc_markup(s: &str) -> String {
 /// individuals just have name + address. The role label is the contract-side
 /// label (Consultant / Client / Provider / Party A / etc).
 fn party_intro_prose(p: &PartyData) -> String {
-    let legal = p.legal_name.clone().unwrap_or_else(|| p.display_name.clone());
+    let legal = p
+        .legal_name
+        .clone()
+        .unwrap_or_else(|| p.display_name.clone());
     let name_upper = esc_markup(&legal.to_uppercase());
     let addr = esc_markup(&p.address.join(", "));
     let looks_like_company = looks_like_company_name(&legal);
@@ -344,6 +395,9 @@ fn party_intro_prose(p: &PartyData) -> String {
         // Jurisdiction missing but company number known.
         qualifier.push_str(&format!(", company no. {}", esc_markup(co)));
     }
+    if let Some(email) = &p.email {
+        qualifier.push_str(&format!(", email: {}", esc_markup(email)));
+    }
     // Use Typst's single-asterisk bold syntax so the name reads as bold.
     format!(
         "*{name_upper}* of {addr}{qualifier} (the \"{role}\")",
@@ -354,9 +408,24 @@ fn party_intro_prose(p: &PartyData) -> String {
 fn looks_like_company_name(s: &str) -> bool {
     let lower = s.to_lowercase();
     [
-        " ltd", " limited", " inc", " incorporated", " corp", " corporation",
-        " pte", " llc", " llp", " plc", " gmbh", " ag", " sa", " s.a.",
-        " sas", " bv", " nv", " pty",
+        " ltd",
+        " limited",
+        " inc",
+        " incorporated",
+        " corp",
+        " corporation",
+        " pte",
+        " llc",
+        " llp",
+        " plc",
+        " gmbh",
+        " ag",
+        " sa",
+        " s.a.",
+        " sas",
+        " bv",
+        " nv",
+        " pty",
     ]
     .iter()
     .any(|s| lower.contains(s))
@@ -413,8 +482,14 @@ fn vars_from(
     their_role: &str,
 ) -> BTreeMap<String, String> {
     let mut v = BTreeMap::new();
-    let our_legal = issuer.legal_name.clone().unwrap_or_else(|| issuer.name.clone());
-    let their_legal = client.legal_name.clone().unwrap_or_else(|| client.name.clone());
+    let our_legal = issuer
+        .legal_name
+        .clone()
+        .unwrap_or_else(|| issuer.name.clone());
+    let their_legal = client
+        .legal_name
+        .clone()
+        .unwrap_or_else(|| client.name.clone());
     v.insert("our_name".into(), issuer.name.clone());
     v.insert("our_legal_name".into(), our_legal);
     v.insert("our_role".into(), our_role.to_string());
@@ -426,18 +501,29 @@ fn vars_from(
     v.insert("effective_date".into(), fmt_date(&contract.effective_date));
     v.insert(
         "end_date".into(),
-        contract.end_date.as_deref().map(fmt_date).unwrap_or_default(),
+        contract
+            .end_date
+            .as_deref()
+            .map(fmt_date)
+            .unwrap_or_default(),
     );
     v.insert("term_text".into(), term_text(contract));
     v.insert("governing_law".into(), contract.governing_law.clone());
     v.insert(
         "jurisdiction_phrase".into(),
-        jurisdiction_phrase(&contract.governing_law),
+        crate::legal::venue_phrase(
+            &contract.governing_law,
+            contract.venue.as_deref(),
+            terms.get("legal_profile").and_then(|v| v.as_str()),
+        ),
     );
-    v.insert(
-        "venue".into(),
-        contract.venue.clone().unwrap_or_default(),
-    );
+    v.insert("venue".into(), contract.venue.clone().unwrap_or_default());
+    if contract.clause_pack_version.starts_with("1.") && contract.venue.is_none() {
+        v.insert(
+            "jurisdiction_phrase".into(),
+            jurisdiction_phrase(&contract.governing_law),
+        );
+    }
     // NDA specifics
     v.insert(
         "purpose".into(),
@@ -459,7 +545,10 @@ fn vars_from(
         "confidentiality_years".into(),
         terms
             .get("confidentiality_years")
-            .and_then(|x| x.as_i64())
+            .and_then(|x| {
+                x.as_i64()
+                    .or_else(|| x.as_str().and_then(|s| s.parse().ok()))
+            })
             .map(|n| n.to_string())
             .unwrap_or_else(|| "3".into()),
     );
@@ -467,23 +556,63 @@ fn vars_from(
         "termination_notice_days".into(),
         terms
             .get("termination_notice_days")
-            .and_then(|x| x.as_i64())
+            .and_then(|x| {
+                x.as_i64()
+                    .or_else(|| x.as_str().and_then(|s| s.parse().ok()))
+            })
             .or_else(|| {
                 contract
                     .terms_json
                     .parse::<serde_json::Value>()
                     .ok()
-                    .and_then(|t| t.get("termination_notice_days").and_then(|x| x.as_i64()))
+                    .and_then(|t| {
+                        t.get("termination_notice_days").and_then(|x| {
+                            x.as_i64()
+                                .or_else(|| x.as_str().and_then(|s| s.parse().ok()))
+                        })
+                    })
             })
             .map(|n| n.to_string())
             .unwrap_or_else(|| "30".into()),
     );
     // Consulting / SOW
+    v.insert("deliverables_block".into(), deliverables_block(terms));
     v.insert(
-        "deliverables_block".into(),
-        deliverables_block(terms),
+        "ip_assignment_text".into(),
+        if contract.clause_pack_version.starts_with("1.") {
+            legacy_ip_assignment_text(terms)
+        } else {
+            ip_assignment_text(terms, our_role, their_role)
+        },
     );
-    v.insert("ip_assignment_text".into(), ip_assignment_text(terms));
+    let unilateral = terms.get("mutuality").and_then(|v| v.as_str()) == Some("unilateral");
+    let definition = if unilateral {
+        let (discloser, recipient) =
+            if terms.get("disclosing_side").and_then(|v| v.as_str()) == Some("them") {
+                (&client.name, &issuer.name)
+            } else {
+                (&issuer.name, &client.name)
+            };
+        format!(
+            "For this agreement, {discloser} is the disclosing party and {recipient} is the receiving party. The confidentiality and restricted-use obligations protect information disclosed by the disclosing party to the receiving party; they do not create reciprocal confidentiality duties."
+        )
+    } else {
+        "Each party is the disclosing party for information it discloses and the receiving party for information it receives. The confidentiality and restricted-use obligations apply reciprocally.".into()
+    };
+    v.insert("nda_definition".into(), definition);
+    for (key, fallback) in [("acceptance_days", "10"), ("revision_rounds", "2")] {
+        v.insert(
+            key.into(),
+            terms
+                .get(key)
+                .map(|v| {
+                    v.as_str()
+                        .map(str::to_owned)
+                        .unwrap_or_else(|| v.to_string())
+                })
+                .unwrap_or_else(|| fallback.into()),
+        );
+    }
     v.insert(
         "fee_text".into(),
         fee_text(contract).unwrap_or_else(|| "as separately agreed in writing".into()),
@@ -533,7 +662,36 @@ pub fn build_render_data(
             overrides.insert(r.slug.clone(), (r.heading.clone(), r.body.clone()));
         }
     }
-    let resolved = clauses::resolve(pack, &included, &overrides, &vars)?;
+    let mut resolved = clauses::resolve(pack, &included, &overrides, &vars)?;
+    if !contract.clause_pack_version.starts_with("1.")
+        && terms.get("legal_profile").and_then(|v| v.as_str()) == Some("us")
+    {
+        resolved.push(clauses::ResolvedClause {
+            position: resolved.len() as i64,
+            slug: "us_trade_secret_notice".into(),
+            heading: "Protected trade-secret disclosures".into(),
+            body: crate::legal::US_IMMUNITY.into(),
+        });
+    }
+    if force_final
+        || (!force_draft
+            && matches!(
+                contract.status.as_str(),
+                "signed" | "active" | "expired" | "terminated"
+            ))
+    {
+        let unresolved: Vec<_> = resolved
+            .iter()
+            .filter(|c| c.body.contains("{{") || c.heading.contains("{{"))
+            .map(|c| c.slug.as_str())
+            .collect();
+        if !unresolved.is_empty() {
+            return Err(AppError::InvalidInput(format!(
+                "unresolved terms in clauses: {}. Supply the missing --term key=value before final rendering",
+                unresolved.join(", ")
+            )));
+        }
+    }
     let render_clauses: Vec<ClauseRenderData> = resolved
         .into_iter()
         .enumerate()
@@ -584,7 +742,10 @@ pub fn build_render_data(
 
     let our_party = party_display(issuer, &our_role);
     let their_party = client_display(client, &their_role);
-    let parties_prose = vec![party_intro_prose(&our_party), party_intro_prose(&their_party)];
+    let parties_prose = vec![
+        party_intro_prose(&our_party),
+        party_intro_prose(&their_party),
+    ];
     // Compute subtitle: suppress when contract.title is just the auto-default.
     let auto = auto_default_title(&contract.kind, &issuer.name, &client.name);
     let subtitle = if contract.title.trim() == auto.trim() {
@@ -595,6 +756,7 @@ pub fn build_render_data(
 
     Ok(ContractRenderData {
         kind: contract.kind.clone(),
+        paper: "a4".into(),
         kind_label: kind_label(&contract.kind, &terms),
         number: contract.number.clone(),
         subtitle,
@@ -603,7 +765,11 @@ pub fn build_render_data(
         term_text: term_text(contract),
         term_short: term_short(contract),
         governing_law: contract.governing_law.clone(),
-        jurisdiction_phrase: jurisdiction_phrase(&contract.governing_law),
+        jurisdiction_phrase: crate::legal::venue_phrase(
+            &contract.governing_law,
+            contract.venue.as_deref(),
+            terms.get("legal_profile").and_then(|v| v.as_str()),
+        ),
         venue: contract.venue.clone(),
         status: contract.status.clone(),
         draft_watermark: draft,
@@ -615,7 +781,7 @@ pub fn build_render_data(
         clauses: render_clauses,
         signature,
         logo: None, // populated by render_to_pdf if issuer has a logo
-        internal_notes: contract.notes.clone(),
+        internal_notes: None,
     })
 }
 
@@ -625,18 +791,22 @@ pub fn render_to_pdf(
     issuer: &Issuer,
     out_path: &Path,
 ) -> Result<()> {
-    typst_assets::ensure_extracted()?;
     if !typst_assets::has_template(template)? {
         return Err(AppError::InvalidInput(format!(
             "template '{template}' not found. Run: contract template list"
         )));
     }
 
+    typst_assets::ensure_extracted()?;
     let tmp = tempfile::Builder::new()
         .prefix("contract-cli-render-")
         .tempdir()?;
     let root = tmp.path();
-    copy_dir_contents(&typst_assets::project_root()?, root)?;
+    let assets = typst_assets::project_root()?;
+    // Fonts are reusable immutable assets; Typst's font search may read them
+    // directly. Avoid copying the entire font library for every document.
+    copy_dir_contents(&assets.join("shared"), &root.join("shared"))?;
+    copy_dir_contents(&assets.join("templates"), &root.join("templates"))?;
 
     // Copy logo (if any) into shared/ and set the json path.
     data.logo = stage_logo(root, issuer)?;
@@ -649,21 +819,38 @@ pub fn render_to_pdf(
     cmd.arg("compile").arg("--root").arg(root);
     // Embedded OFL fonts (typst/fonts/**) travel with the assets; point typst
     // at them so templates render identically on machines without the faces.
-    let fonts_dir = root.join("fonts");
+    let fonts_dir = assets.join("fonts");
     if fonts_dir.is_dir() {
         cmd.arg("--font-path").arg(&fonts_dir);
     }
-    let status = cmd
+    let parent = out_path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    std::fs::create_dir_all(parent)?;
+    let staged = tempfile::Builder::new()
+        .prefix(".contract-")
+        .suffix(".pdf")
+        .tempfile_in(parent)?;
+    let output = cmd
         .arg(&template_path)
-        .arg(out_path)
-        .status()
+        .arg(staged.path())
+        .output()
         .map_err(|e| AppError::Render(format!("typst binary not found: {e}")))?;
-    if !status.success() {
+    if !output.status.success() {
         return Err(AppError::Render(format!(
-            "typst compile exited with {}",
-            status.code().unwrap_or(-1)
+            "typst compile failed: {}",
+            String::from_utf8_lossy(&output.stderr)
         )));
     }
+    let bytes = std::fs::read(staged.path())?;
+    if !bytes.starts_with(b"%PDF-") {
+        return Err(AppError::Render("compiler did not produce a PDF".into()));
+    }
+    staged.as_file().sync_all()?;
+    staged
+        .persist(out_path)
+        .map_err(|e| AppError::Io(e.error))?;
     Ok(())
 }
 
@@ -673,6 +860,11 @@ fn copy_dir_contents(src: &Path, dst: &Path) -> Result<()> {
         let entry = entry?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
+        if entry.file_type()?.is_symlink() {
+            return Err(AppError::InvalidInput(
+                "symlink in template assets is not supported".into(),
+            ));
+        }
         if src_path.is_dir() {
             copy_dir_contents(&src_path, &dst_path)?;
         } else {
@@ -688,7 +880,7 @@ fn stage_logo(root: &Path, issuer: &Issuer) -> Result<Option<String>> {
     };
     let src_expanded = expand_tilde(src_raw);
     let src = Path::new(&src_expanded);
-    if !src.exists() {
+    if !src.is_file() {
         eprintln!(
             "warning: logo '{}' not found for issuer '{}' — rendering without",
             src.display(),
@@ -701,7 +893,10 @@ fn stage_logo(root: &Path, issuer: &Issuer) -> Result<Option<String>> {
         .and_then(|e| e.to_str())
         .unwrap_or("png")
         .to_lowercase();
-    let rel = format!("shared/logo-{}.{ext}", issuer.slug);
+    if !["png", "jpg", "jpeg", "svg", "gif", "webp"].contains(&ext.as_str()) {
+        return Err(AppError::InvalidInput("unsupported logo format".into()));
+    }
+    let rel = format!("shared/logo.{ext}");
     let dst = root.join(&rel);
     if let Some(parent) = dst.parent() {
         std::fs::create_dir_all(parent)?;
@@ -711,15 +906,17 @@ fn stage_logo(root: &Path, issuer: &Issuer) -> Result<Option<String>> {
 }
 
 pub fn expand_tilde(s: &str) -> String {
-    if let Some(rest) = s.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return format!("{home}/{rest}");
-        }
+    if let Some(rest) = s.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return format!("{home}/{rest}");
     }
     s.to_string()
 }
 
 pub fn default_output_dir() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-    std::path::PathBuf::from(home).join("Documents").join("Contracts")
+    std::path::PathBuf::from(home)
+        .join("Documents")
+        .join("Contracts")
 }

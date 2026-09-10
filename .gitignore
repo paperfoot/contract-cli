@@ -1,7 +1,10 @@
 target/
-Cargo.lock
 .DS_Store
 *.pdf
 .ritalin/
 .task-incomplete
 .claude/tsc-cache/
+work/
+*.db
+*.db-*
+.env*

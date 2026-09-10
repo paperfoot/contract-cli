@@ -1,0 +1,67 @@
+[pack]
+slug = "standard"
+name = "Standard Statement of Work (plain English)"
+version = "1.0"
+kind = "sow"
+default_clauses = [
+  "reference",
+  "description",
+  "deliverables",
+  "fees",
+  "timing",
+  "acceptance",
+  "assumptions",
+  "signature_note",
+]
+
+[clauses.reference]
+heading = "Reference to Master Agreement"
+body = """
+This Statement of Work (“SOW”) is entered into under the Master Services Agreement between {{our_legal_name}} (the “Provider”) and {{their_legal_name}} (the “Client”). The MSA’s terms apply to this SOW; where this SOW conflicts with the MSA, this SOW controls for this project.
+"""
+
+[clauses.description]
+heading = "Project Description"
+body = """
+{{purpose}}
+"""
+
+[clauses.deliverables]
+heading = "Deliverables"
+body = """
+The Provider will deliver the following:
+
+{{deliverables_block}}
+"""
+
+[clauses.fees]
+heading = "Fees"
+body = """
+{{fee_text}}.
+
+Invoices are payable within 14 days of receipt. Reasonable out-of-pocket expenses are reimbursable when pre-approved in writing.
+"""
+
+[clauses.timing]
+heading = "Timing"
+body = """
+Work begins on {{effective_date}} and runs {{term_text}}. Specific milestones, if any, are listed under Deliverables.
+"""
+
+[clauses.acceptance]
+heading = "Acceptance"
+body = """
+Each deliverable is deemed accepted when (i) the Client confirms acceptance in writing (email is fine) or (ii) seven days after delivery, whichever is earlier, unless the Client reasonably rejects it in writing within that period describing what is materially missing or non-conforming. The Provider will then have a reasonable opportunity to correct it.
+"""
+
+[clauses.assumptions]
+heading = "Assumptions"
+body = """
+This SOW is based on the Provider receiving timely access, feedback, and inputs from the Client. Material delays or changes to the inputs may impact timing and fees; any such impact will be agreed in writing before extra work is performed.
+"""
+
+[clauses.signature_note]
+heading = "Authority"
+body = """
+By signing below, each signatory confirms they are authorised to sign on behalf of their organisation and to bind that organisation to this SOW.
+"""

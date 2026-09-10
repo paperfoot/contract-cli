@@ -5,7 +5,7 @@
 // contracts (V7), contract_clauses (V7), number_series (shared).
 // ═══════════════════════════════════════════════════════════════════════════
 
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -16,11 +16,15 @@ pub use finance_core::entity::Issuer;
 
 pub fn open() -> Result<Connection> {
     let paths = finance_core::paths::Paths::resolve()?;
-    Ok(finance_core::db::open(&paths)?)
+    let mut conn = finance_core::db::open(&paths)?;
+    upgrade_contract_kinds(&mut conn)?;
+    Ok(conn)
 }
 
 pub fn open_at(path: &Path) -> Result<Connection> {
-    Ok(finance_core::db::open_at(path)?)
+    let mut conn = finance_core::db::open_at(path)?;
+    upgrade_contract_kinds(&mut conn)?;
+    Ok(conn)
 }
 
 // ─── Issuers (shared with invoice-cli) ────────────────────────────────────
@@ -33,6 +37,7 @@ fn text_to_addr(s: &str) -> Vec<String> {
 }
 
 pub fn issuer_create(conn: &Connection, issuer: &Issuer) -> Result<i64> {
+    crate::typst_assets::validate_name(&issuer.slug)?;
     conn.execute(
         "INSERT INTO issuers (slug, name, legal_name, jurisdiction, tax_registered,
                               tax_id, company_no, tagline, address, email, phone,
@@ -405,7 +410,11 @@ fn row_to_contract(row: &rusqlite::Row) -> rusqlite::Result<Contract> {
     })
 }
 
-pub fn contract_create(conn: &mut Connection, c: &Contract, clauses: &[ContractClauseRow]) -> Result<i64> {
+pub fn contract_create(
+    conn: &mut Connection,
+    c: &Contract,
+    clauses: &[ContractClauseRow],
+) -> Result<i64> {
     let tx = conn.transaction()?;
     // Explicit RFC3339 stamps — the column DEFAULT CURRENT_TIMESTAMP emits a
     // different format ("YYYY-MM-DD HH:MM:SS") than the update paths write.
@@ -508,20 +517,20 @@ pub fn contract_update_draft(conn: &Connection, c: &Contract) -> Result<()> {
         )
         .optional()?;
     let status = status.ok_or_else(|| AppError::NotFound(format!("contract '{}'", c.number)))?;
-    if status != "draft" {
+    if status != "draft" || c.signed_by_us_name.is_some() || c.signed_by_them_name.is_some() {
         return Err(AppError::InvalidInput(format!(
             "contract '{}' is {status}, not draft — sent/signed contracts are immutable.",
             c.number
         )));
     }
     let now = chrono::Utc::now().to_rfc3339();
-    conn.execute(
+    let changed = conn.execute(
         "UPDATE contracts SET
              client_id = ?1, title = ?2, effective_date = ?3, end_date = ?4,
              term_months = ?5, governing_law = ?6, venue = ?7, notes = ?8,
              fee_type = ?9, fee_amount_minor = ?10, fee_currency = ?11, fee_schedule = ?12,
              terms_json = ?13, default_template = ?14, updated_at = ?15
-         WHERE number = ?16",
+         WHERE number = ?16 AND status = 'draft' AND signed_by_us_name IS NULL AND signed_by_them_name IS NULL",
         params![
             c.client_id,
             c.title,
@@ -541,6 +550,11 @@ pub fn contract_update_draft(conn: &Connection, c: &Contract) -> Result<()> {
             c.number,
         ],
     )?;
+    if changed != 1 {
+        return Err(AppError::InvalidInput(
+            "contract changed concurrently or is no longer an unsigned draft".into(),
+        ));
+    }
     Ok(())
 }
 
@@ -555,7 +569,7 @@ pub fn contract_set_status(conn: &Connection, number: &str, status: &str) -> Res
     let now = chrono::Utc::now().to_rfc3339();
     let affected = match status {
         "sent" => conn.execute(
-            "UPDATE contracts SET status = ?1, sent_at = COALESCE(sent_at, ?2), updated_at = ?2 WHERE number = ?3",
+            "UPDATE contracts SET status = ?1, sent_at = ?2, updated_at = ?2 WHERE number = ?3",
             params![status, now, number],
         )?,
         "signed" | "active" => conn.execute(
@@ -658,7 +672,7 @@ pub fn clauses_for(conn: &Connection, contract_id: i64) -> Result<Vec<ContractCl
 
 fn require_mutable(conn: &Connection, number: &str) -> Result<Contract> {
     let c = contract_get_or_404(conn, number)?;
-    if c.status != "draft" {
+    if c.status != "draft" || c.signed_by_us_name.is_some() || c.signed_by_them_name.is_some() {
         return Err(AppError::InvalidInput(format!(
             "contract '{number}' is {} — clauses can only be edited on draft.",
             c.status
@@ -675,8 +689,8 @@ pub fn clause_add(
     body: Option<&str>,
     position: Option<i64>,
 ) -> Result<ContractClauseRow> {
-    let c = require_mutable(conn, number)?;
-    let tx = conn.transaction()?;
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let c = require_mutable(&tx, number)?;
     // disallow duplicates
     let exists: Option<i64> = tx
         .query_row(
@@ -721,8 +735,8 @@ pub fn clause_add(
 }
 
 pub fn clause_remove(conn: &mut Connection, number: &str, slug: &str) -> Result<()> {
-    let c = require_mutable(conn, number)?;
-    let tx = conn.transaction()?;
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let c = require_mutable(&tx, number)?;
     let pos: Option<i64> = tx
         .query_row(
             "SELECT position FROM contract_clauses WHERE contract_id = ?1 AND slug = ?2",
@@ -754,7 +768,7 @@ pub fn clause_edit(
     let c = require_mutable(conn, number)?;
     let affected = conn.execute(
         "UPDATE contract_clauses SET heading = COALESCE(?1, heading), body = COALESCE(?2, body)
-         WHERE contract_id = ?3 AND slug = ?4",
+         WHERE contract_id = ?3 AND slug = ?4 AND EXISTS (SELECT 1 FROM contracts WHERE id = ?3 AND status = 'draft' AND signed_by_us_name IS NULL AND signed_by_them_name IS NULL)",
         params![heading, body, c.id, slug],
     )?;
     if affected == 0 {
@@ -766,8 +780,8 @@ pub fn clause_edit(
 }
 
 pub fn clause_move(conn: &mut Connection, number: &str, slug: &str, new_pos: i64) -> Result<()> {
-    let c = require_mutable(conn, number)?;
-    let tx = conn.transaction()?;
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let c = require_mutable(&tx, number)?;
     let cur_pos: i64 = tx
         .query_row(
             "SELECT position FROM contract_clauses WHERE contract_id = ?1 AND slug = ?2",
@@ -812,8 +826,8 @@ pub fn clauses_reset(
     number: &str,
     fresh: &[ContractClauseRow],
 ) -> Result<()> {
-    let c = require_mutable(conn, number)?;
-    let tx = conn.transaction()?;
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let c = require_mutable(&tx, number)?;
     tx.execute(
         "DELETE FROM contract_clauses WHERE contract_id = ?1",
         params![c.id],
@@ -849,13 +863,86 @@ pub fn next_contract_number(
         params![issuer.id, year, series_kind],
         |r| r.get(0),
     )?;
-    let prefix = match kind {
-        "consulting" => "CTR",
-        "nda" => "NDA",
-        "msa" => "MSA",
-        "sow" => "SOW",
-        "service" => "SVC",
-        _ => "DOC",
-    };
+    let prefix = crate::kinds::prefix_for(kind);
     Ok(format!("{prefix}-{}-{}-{:04}", issuer.slug, year, seq))
+}
+
+/// Compatibility migration for finance-core 0.4's five-kind CHECK. Rebuild the
+/// table using SQLite's documented procedure; preserve data, indexes, triggers,
+/// foreign keys and the AUTOINCREMENT high-water mark. No shared migration edits.
+fn upgrade_contract_kinds(conn: &mut Connection) -> Result<()> {
+    let sql: String = conn.query_row(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='contracts'",
+        [],
+        |r| r.get(0),
+    )?;
+    let old = "'consulting','nda','msa','sow','service'";
+    if !sql.contains(old) || (sql.contains("'ncnda'") && sql.contains("'loan'")) {
+        return Ok(());
+    }
+    conn.pragma_update(None, "foreign_keys", false)?;
+    let result = (|| -> Result<()> {
+        let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        // Re-read after acquiring the write lock: another process may have migrated.
+        let sql: String = tx.query_row(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='contracts'",
+            [],
+            |r| r.get(0),
+        )?;
+        if !sql.contains(old) || (sql.contains("'ncnda'") && sql.contains("'loan'")) {
+            tx.commit()?;
+            return Ok(());
+        }
+        let objects: Vec<String> = {
+            let mut stmt = tx.prepare("SELECT sql FROM sqlite_master WHERE tbl_name='contracts' AND type IN ('index','trigger') AND sql IS NOT NULL")?;
+            stmt.query_map([], |r| r.get(0))?
+                .collect::<std::result::Result<_, _>>()?
+        };
+        let seq: i64 = tx
+            .query_row(
+                "SELECT seq FROM sqlite_sequence WHERE name='contracts'",
+                [],
+                |r| r.get(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        let create = sql
+            .replacen(
+                "CREATE TABLE contracts",
+                "CREATE TABLE contracts_upgrade",
+                1,
+            )
+            .replace(
+                old,
+                "'consulting','nda','msa','sow','service','ncnda','loan'",
+            );
+        if !create.starts_with("CREATE TABLE contracts_upgrade") {
+            return Err(AppError::Other(
+                "unrecognised contracts schema; migration refused".into(),
+            ));
+        }
+        tx.execute_batch(&create)?;
+        tx.execute_batch("INSERT INTO contracts_upgrade SELECT * FROM contracts; DROP TABLE contracts; ALTER TABLE contracts_upgrade RENAME TO contracts;")?;
+        for object in objects {
+            tx.execute_batch(&object)?;
+        }
+        tx.execute(
+            "UPDATE sqlite_sequence SET seq=MAX(seq,?1) WHERE name='contracts'",
+            [seq],
+        )?;
+        let broken: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
+            [],
+            |r| r.get(0),
+        )?;
+        if broken {
+            return Err(AppError::Other(
+                "contract schema upgrade failed foreign-key validation".into(),
+            ));
+        }
+        tx.commit()?;
+        Ok(())
+    })();
+    conn.pragma_update(None, "foreign_keys", true)?;
+    result
 }

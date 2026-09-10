@@ -110,30 +110,33 @@
   if m == none { s } else { s.slice(m.end) }
 }
 
+// Parse block structure without eval. Continuation lines in lists must never
+// disappear: legal text cannot be dropped because of its line wrapping.
 #let render-markdown(md) = {
-  let paras = md.split("\n\n").map(p => p.trim())
-  for p in paras {
-    if p == "" { continue }
-    let lines = p.split("\n")
-    let first = lines.find(l => l.trim() != "")
-    if first == none { continue }
-    let first-t = first.trim()
-    if first-t.starts-with("- ") {
-      list(
-        ..lines
-          .filter(l => l.trim().starts-with("- "))
-          .map(l => l.trim().slice(2))
-      )
-    } else if starts-with-number(first-t) {
-      enum(
-        ..lines
-          .filter(l => starts-with-number(l.trim()))
-          .map(l => strip-num-prefix(l.trim()))
-      )
-    } else {
-      let joined = lines.map(l => l.trim()).filter(l => l != "").join(" ")
-      par(joined)
+  let groups = md.replace("\r\n", "\n").split("\n\n")
+  for group in groups {
+    let kind = "paragraph"
+    let items = ()
+    let prose = ()
+    let flush(kind, items, prose) = {
+      if items.len() > 0 {
+        if kind == "bullet" { list(..items) } else { enum(..items) }
+      }
+      if prose.len() > 0 { par(prose.join(" ")) }
     }
+    for line in group.split("\n") {
+      let line = line.trim()
+      if line == "" { continue }
+      let next = if line.starts-with("- ") { "bullet" } else if starts-with-number(line) { "number" } else { "paragraph" }
+      if next != "paragraph" {
+        if kind != next { flush(kind, items, prose); items = (); prose = () }
+        kind = next
+        items.push(if next == "bullet" { line.slice(2) } else { strip-num-prefix(line) })
+      } else if items.len() > 0 {
+        items.at(items.len() - 1) += " " + line
+      } else { prose.push(line) }
+    }
+    flush(kind, items, prose)
   }
 }
 
@@ -252,10 +255,10 @@
 }
 
 #let signature-pair(theme, party-label, party-name, signer-name, signer-title, signer-date) = {
-  lbl(theme, "Signed for and on behalf of")
+  lbl(theme, "Signed by / for")
   v(sp.xs)
   text(font: th(theme, "display-font", ("Helvetica Neue", "Helvetica", "Arial")), size: 10.5pt, weight: 600)[#party-name]
-  v(16mm)
+  v(12mm)
   line(length: 100%, stroke: 0.4pt + th(theme, "ink", black))
   v(sp.xxs)
   text(size: 6.5pt, fill: th(theme, "mute", rgb("#666666")), tracking: 0.8pt)[SIGNATURE]
@@ -382,8 +385,9 @@
 // ─── Page shell ────────────────────────────────────────────────────────────
 
 #let page-shell(theme, body) = {
+  set document(title: data.kind-label, author: (), keywords: ("Agreement", data.kind), date: none)
   set page(
-    paper: "a4",
+    paper: data.at("paper", default: "a4"),
     margin: th(theme, "margin", (top: 22mm, bottom: 22mm, left: 22mm, right: 22mm)),
     fill: th(theme, "paper", white),
     header: context if here().page() > 1 { compact-strip(theme) },

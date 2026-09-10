@@ -5,28 +5,46 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: contract-cli
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: paperfoot/finance-core
+          ref: d822761a58b1651add2b9eb4036cae87ffe5d5e7
           path: finance-core
           token: ${{ secrets.FINANCE_CORE_TOKEN || github.token }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: contract-cli
+      - name: Format and lint
+        working-directory: contract-cli
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
       - name: Tests
         working-directory: contract-cli
-        run: cargo test --release
+        run: cargo test --release --locked
+      - name: PDF content matrix
+        working-directory: contract-cli
+        run: |
+          brew install typst poppler
+          cargo build --release --locked
+          python3 scripts/smoke-pdfs.py --binary target/release/contract
       - name: Conformance (agent-cli-framework)
         working-directory: contract-cli
         run: |
-          curl -fsSL https://raw.githubusercontent.com/paperfoot/agent-cli-framework/main/conformance/conformance.sh -o /tmp/conformance.sh
-          chmod +x /tmp/conformance.sh
-          /tmp/conformance.sh ./target/release/contract
+          curl -fsSL https://raw.githubusercontent.com/paperfoot/agent-cli-framework/a7797eb3d1013d52830143e0f03e13d99b812bed/conformance/conformance.sh -o "$RUNNER_TEMP/conformance.sh"
+          chmod +x "$RUNNER_TEMP/conformance.sh"
+          "$RUNNER_TEMP/conformance.sh" ./target/release/contract

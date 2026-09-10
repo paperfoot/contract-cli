@@ -1,8 +1,8 @@
-use crate::cli::ClauseCmd;
 use crate::clauses;
+use crate::cli::ClauseCmd;
 use crate::db::{self, ContractClauseRow};
 use crate::error::{AppError, Result};
-use crate::output::{print_success, Ctx};
+use crate::output::{Ctx, print_success};
 
 pub fn run(cmd: ClauseCmd, ctx: Ctx) -> Result<()> {
     match cmd {
@@ -38,9 +38,11 @@ fn body_text(body: Option<String>, from_file: Option<String>) -> Result<Option<S
             "pass either --body or --from-file, not both".into(),
         )),
         (Some(b), None) => Ok(Some(b)),
-        (None, Some(p)) => Ok(Some(std::fs::read_to_string(&p).map_err(|e| {
-            AppError::InvalidInput(format!("could not read {p}: {e}"))
-        })?)),
+        (None, Some(p)) => {
+            Ok(Some(std::fs::read_to_string(&p).map_err(|e| {
+                AppError::InvalidInput(format!("could not read {p}: {e}"))
+            })?))
+        }
         (None, None) => Ok(None),
     }
 }
@@ -84,7 +86,7 @@ fn add(
     let body = body_text(body, from_file)?;
     // Validate slug exists in the pack OR a custom body was provided.
     let c = db::contract_get_or_404(&conn, number)?;
-    let pack = clauses::load_pack(&c.kind, &c.clause_pack)?;
+    let pack = clauses::load_pack_version(&c.kind, &c.clause_pack, &c.clause_pack_version)?;
     if body.is_none() && !pack.clauses.contains_key(slug) {
         return Err(AppError::NotFound(format!(
             "clause '{slug}' is not in pack '{}/{}'. Either pick a known slug or pass --body / --from-file to define a custom clause.",
@@ -97,7 +99,14 @@ fn add(
     } else {
         heading
     };
-    let row = db::clause_add(&mut conn, number, slug, heading.as_deref(), body.as_deref(), position)?;
+    let row = db::clause_add(
+        &mut conn,
+        number,
+        slug,
+        heading.as_deref(),
+        body.as_deref(),
+        position,
+    )?;
     print_success(ctx, &row, |r| {
         println!("added clause '{}' at position {}", r.slug, r.position + 1);
     });
@@ -157,7 +166,7 @@ fn move_clause(number: &str, slug: &str, position: i64, ctx: Ctx) -> Result<()> 
 fn reset(number: &str, ctx: Ctx) -> Result<()> {
     let mut conn = db::open()?;
     let c = db::contract_get_or_404(&conn, number)?;
-    let pack = clauses::load_pack(&c.kind, &c.clause_pack)?;
+    let pack = clauses::load_pack_version(&c.kind, &c.clause_pack, &c.clause_pack_version)?;
     let fresh: Vec<ContractClauseRow> = pack
         .pack
         .default_clauses

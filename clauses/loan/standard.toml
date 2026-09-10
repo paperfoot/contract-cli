@@ -1,25 +1,9 @@
 [pack]
 slug = "standard"
 name = "Standard Loan Agreement (plain English)"
-version = "1.0"
+version = "2.0"
 kind = "loan"
-default_clauses = [
-  "the_loan",
-  "advance",
-  "interest",
-  "repayment",
-  "prepayment",
-  "default",
-  "set_off",
-  "costs",
-  "assignment",
-  "notices",
-  "no_partnership",
-  "third_party_rights",
-  "entire_agreement",
-  "counterparts",
-  "governing_law",
-]
+default_clauses = ["the_loan", "advance", "interest", "repayment", "prepayment", "default", "set_off", "costs", "assignment", "notices", "no_partnership", "third_party_rights", "entire_agreement", "counterparts", "governing_law", "regulatory_scope"]
 
 [clauses.the_loan]
 heading = "The Loan"
@@ -84,7 +68,7 @@ The Borrower may not assign or transfer any of its rights or obligations under t
 [clauses.notices]
 heading = "Notices"
 body = """
-Notices under this agreement must be in writing and sent to the address or email of the relevant party on the signature page, or as later notified in writing.
+Notices must be in writing and sent to the contact email or postal address in the Parties section, or a replacement notified in writing. An email takes effect when receipt is acknowledged by the recipient, excluding automated responses. If no acknowledgement is received, the sender must use delivery with evidence of receipt. This clause does not govern service of court proceedings.
 """
 
 [clauses.no_partnership]
@@ -96,23 +80,29 @@ Nothing in this agreement creates a partnership, joint venture, agency, or emplo
 [clauses.third_party_rights]
 heading = "Third-Party Rights"
 body = """
-A person who is not a party to this agreement has no right to enforce any of its terms, whether under the Contracts (Rights of Third Parties) Act 1999 or otherwise.
+A person who is not a party to this agreement has no right to enforce any of its terms, except where mandatory law provides otherwise.
 """
 
 [clauses.entire_agreement]
 heading = "Entire Agreement"
 body = """
-This agreement is the entire agreement between the parties on the Loan and replaces any prior discussions or understandings on the same subject. Changes must be in writing and signed by both parties.
+This agreement is the entire agreement between the parties on the Loan and replaces prior discussions on the same subject. Changes must be in writing and signed by both parties. Nothing excludes or limits liability for fraud, fraudulent misrepresentation or any liability that cannot lawfully be excluded.
 """
 
 [clauses.counterparts]
 heading = "Counterparts and Electronic Signatures"
 body = """
-This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — are valid and binding.
+This agreement may be signed in any number of counterparts, each of which is an original and which together form one agreement. Signatures exchanged electronically — including scanned and e-signed copies — may be used where permitted by applicable law and all required execution formalities are met.
 """
 
 [clauses.governing_law]
 heading = "Governing Law and Jurisdiction"
 body = """
 This agreement, and any dispute arising out of or in connection with it, are governed by the laws of {{governing_law}}. The parties submit to the exclusive jurisdiction of {{jurisdiction_phrase}}.
+"""
+
+[clauses.regulatory_scope]
+heading = "Regulatory scope"
+body = """
+The parties shall establish before execution and advance whether this loan is subject to consumer credit, financial services, moneylending or other mandatory regulation, and obtain any required permissions and prescribed documentation. This document does not disapply those requirements and must not be used as a substitute for prescribed regulated-credit documentation.
 """

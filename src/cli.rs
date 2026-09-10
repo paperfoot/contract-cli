@@ -5,7 +5,7 @@ Tips:
   • Run `contract agent-info | jq` for the full capability manifest (commands, flags, exit codes)
   • The DB is SHARED with invoice-cli — always `contract issuer list` / `contract clients list` before creating entities
   • Pipe any command to jq for structured data: `contract list | jq '.data'`
-  • Template chain at render: --template > contract.default_template > \"helvetica-nera\"
+  • Template chain at render: --template > contract.default_template > valid shared config default > \"helvetica-nera\"
   • Drafts render with a DRAFT watermark; use --final for a clean signing copy
   • `contract doctor` verifies typst, the DB, packs, and templates before you start
 
@@ -20,7 +20,7 @@ Examples:
   contract render NDA-acme-2026-0001 --final --open
     Render a clean, watermark-free PDF and open it
 
-  contract sign NDA-acme-2026-0001 --side us --name 'B. Djordjevic' --title Director
+  contract sign NDA-acme-2026-0001 --side us --name 'Alex Morgan' --title Director
     Record one side's signature (status auto-bumps to 'signed' when both sides sign)
 
   contract template list | jq '.data'
@@ -287,6 +287,12 @@ pub struct ContractNewArgs {
     /// Governing law (e.g. "Singapore", "England and Wales", "Delaware")
     #[arg(long)]
     pub governing_law: Option<String>,
+    /// Legal profile: global | uk | us | singapore. Global requires law and venue; US requires --us-state.
+    #[arg(long, value_parser = ["global", "uk", "us", "singapore"])]
+    pub legal_profile: Option<String>,
+    /// US state governing the contract (e.g. Delaware or New York)
+    #[arg(long, requires = "legal_profile")]
+    pub us_state: Option<String>,
     /// Court venue (e.g. "Courts of Singapore")
     #[arg(long)]
     pub venue: Option<String>,
@@ -332,7 +338,7 @@ pub struct ContractNewArgs {
     /// Free-form notes (not rendered on the contract body, kept for reference)
     #[arg(long)]
     pub notes: Option<String>,
-    /// Override the rendered template (else config default)
+    /// Default render template for this contract
     #[arg(long)]
     pub template: Option<String>,
 }
@@ -356,6 +362,9 @@ pub struct ContractRenderArgs {
     /// Output path (defaults to issuer default_output_dir / ./contract-<number>.pdf)
     #[arg(long, short)]
     pub out: Option<String>,
+    /// Page size: a4 or us-letter
+    #[arg(long, value_parser = ["a4", "us-letter"], default_value = "a4")]
+    pub paper: String,
     /// Open the PDF after rendering
     #[arg(long)]
     pub open: bool,
@@ -402,6 +411,10 @@ pub struct ContractEditArgs {
     pub term_months: Option<i64>,
     #[arg(long)]
     pub governing_law: Option<String>,
+    #[arg(long, value_parser = ["global", "uk", "us", "singapore"])]
+    pub legal_profile: Option<String>,
+    #[arg(long, requires = "legal_profile")]
+    pub us_state: Option<String>,
     #[arg(long)]
     pub venue: Option<String>,
     #[arg(long)]
@@ -435,6 +448,8 @@ pub struct DeleteArgs {
 }
 
 #[derive(Subcommand, Debug)]
+// Parsed once per invocation; boxing would add allocation without a useful runtime benefit.
+#[allow(clippy::large_enum_variant)]
 pub enum ContractCmd {
     /// Create a new contract
     #[command(visible_alias = "create")]
@@ -541,6 +556,11 @@ pub enum TemplateCmd {
     /// Render a preview contract with synthetic data
     Preview {
         name: String,
+        /// Clause pack to preview
+        #[arg(long, default_value = "standard")]
+        pack: String,
+        #[arg(long, value_parser = ["a4", "us-letter"], default_value = "a4")]
+        paper: String,
         /// Which contract kind to preview (default consulting)
         #[arg(long, default_value = "consulting")]
         kind: String,
