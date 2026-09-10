@@ -4,12 +4,12 @@ Every stock template uses `typst/shared/modern.typ`. Contract kind and clause pa
 
 ## Evidence and design decisions
 
-The sources below were read on 10 September 2026. They serve different purposes: practitioner guidance supports design choices, reading research describes measured effects, and accessibility guidance addresses a different publication requirement. None establishes one universally correct contract font.
+The sources below were read on 10 September 2026; the point-size, margin and line-length guidance was revisited on 11 September 2026. They serve different purposes: practitioner guidance supports design choices, reading research describes measured effects, and accessibility guidance addresses a different publication requirement. None establishes one universally correct contract font.
 
-- Matthew Butterick's [point-size guidance](https://typographyforlawyers.com/point-size.html) recommends 10–12 pt for printed body text, adjusted for the font's apparent size. His [heading guidance](https://typographyforlawyers.com/point-size.html) favours small size increments. We use 10.5–11.5 pt body text, headings just 0.5 pt larger, and a 20 pt title.
+- Matthew Butterick's [point-size guidance](https://typographyforlawyers.com/point-size.html) recommends 10–12 pt for printed body text, adjusted for the font's apparent size. His [heading guidance](https://typographyforlawyers.com/point-size.html) favours small size increments. We use 10.5 pt body text across all stock templates, headings just 0.5 pt larger, and an 18 pt title.
 - His [line-spacing guidance](https://typographyforlawyers.com/line-spacing.html) recommends 120–145% of the type size. We use the spacious end: exactly 145% baseline-to-baseline. His [paragraph guidance](https://typographyforlawyers.com/space-between-paragraphs.html) suggests 4–10 pt of additional separation; we add 7 pt, with no first-line indent.
-- His [line-length guidance](https://typographyforlawyers.com/line-length.html) suggests an average of 45–90 characters including spaces. [Margins](https://typographyforlawyers.com/page-margins.html) should follow the reading measure, rather than an arbitrary one-inch default. The reading column is capped at 140 mm, centred, with an 8 mm clause-number gutter outside it. [His contract examples](https://typographyforlawyers.com/contracts.html) also favour more white space and clearer numbering.
-- Legge and Bigelow's [2011 vision-science review](https://pmc.ncbi.nlm.nih.gov/articles/PMC3428264/) relates reading to apparent x-height and viewing distance. Nominal point size alone is insufficient. The chosen body fonts have different metrics; their small size adjustments are optical choices, not evidence that one font or size is best for every reader.
+- His [line-length guidance](https://typographyforlawyers.com/line-length.html) suggests an average of 45–90 characters including spaces. His [margin guidance](https://typographyforlawyers.com/page-margins.html) favours wider margins than the conventional one-inch word-processor default. Our 25 mm A4 body margins deliberately favour a fuller contract page; the reading column is capped at 160 mm, centred, with an 8 mm clause-number gutter outside it. This produces longer lines than the previous 140 mm column, especially in narrower serif faces. The 45–90-character range remains a review guide, not a claim that every sample meets it. [His contract examples](https://typographyforlawyers.com/contracts.html) also favour clearer numbering.
+- Legge and Bigelow's [2011 vision-science review](https://pmc.ncbi.nlm.nih.gov/articles/PMC3428264/) relates reading to apparent x-height and viewing distance. Nominal point size alone is insufficient. The chosen body fonts have different metrics and can look different at the shared 10.5 pt size; the chosen size is not evidence that one font or size is best for every reader.
 - Wallace et al.'s [2022 reading study](https://research.adobe.com/publication/towards-individuated-reading-experiences-different-fonts-increase-reading-speed-for-different-individuals/) found substantial individual variation across fonts. It studied digital reading, not contract comprehension. We retain several font families rather than claiming a universal winner.
 - [GOV.UK accessible-document guidance](https://www.gov.uk/guidance/publishing-accessible-documents) recommends at least 12 pt and prefers HTML for public information. These print-oriented defaults are not a claim of accessibility certification or compliance with a prescribed form or court rule. Such requirements and individual reader needs take precedence over these design defaults.
 
@@ -19,9 +19,9 @@ The sources below were read on 10 September 2026. They serve different purposes:
 |---|---|---:|---:|
 | Folio, Vienna Legal | Libre Franklin | 10.5 pt | 15.225 pt |
 | Helvetica Nera, Basel | Archivo | 10.5 pt | 15.225 pt |
-| Counsel, Editorial, Marrakech | Literata | 11 pt | 15.95 pt |
-| Atelier, Gazette | Newsreader 16pt | 11.5 pt | 16.675 pt |
-| Chancery | EB Garamond | 11.5 pt | 16.675 pt |
+| Counsel, Editorial, Marrakech | Literata | 10.5 pt | 15.225 pt |
+| Atelier, Gazette | Newsreader 16pt | 10.5 pt | 15.225 pt |
+| Chancery | EB Garamond | 10.5 pt | 15.225 pt |
 
 “Newsreader 16pt” is the font's optical-design family name, not the rendered point size. Gazette uses Fraunces for its title. All body faces have normal width and regular weight; titles use medium or semibold. Fonts are bundled under their OFL licences and embedded in the PDF. Archivo's regular, medium and semibold files come from [upstream revision 2111276](https://github.com/Omnibus-Type/Archivo/tree/211127690e8ff106c36c935f7e5e697114cff103/fonts/ttf); the previous regular file had incorrect internal names.
 
@@ -44,7 +44,7 @@ A4 is the default for both `render` and `template preview`. Supported [Typst pap
 | `--paper us-legal` | 8.5 × 14 in |
 | `--paper us-executive` | 7.25 × 10.5 in |
 
-A4 has 35 mm margins at the body text, 25 mm above and 30 mm below. Clause numbers hang 8 mm into the left margin. Wider pages retain the 140 mm reading measure. A5 uses a 112 mm column with 18 mm body side margins, 18 mm above and 22 mm below. Paper changes reflow content without shrinking the type.
+A4 has 25 mm margins at the body text (approximately 0.98 inches), 22 mm above and 25 mm below. Clause numbers hang 8 mm into the left margin. Wider pages retain the 160 mm reading measure. A5 uses a 112 mm column with 18 mm body side margins, 18 mm above and 22 mm below. Paper changes reflow content without shrinking the type.
 
 `--reference on` (default) shows the internal document reference in the running header and footer. `--reference off` omits those labels while retaining pagination, the stored identity and any deliberate reference within contractual text. It does not rename the PDF or remove identifiers supplied in the body or filename.
 

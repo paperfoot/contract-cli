@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#2D2B26"), paper: rgb("#FDFBF6"), accent: rgb("#494338"),
   mute: rgb("#655F53"), hair: rgb("#D7D0C3"), watermark: rgb("#EEECE8"),
-  display-font: "EB Garamond", body-font: "EB Garamond", body-size: 11.5pt, title-weight: 500,
+  display-font: "EB Garamond", body-font: "EB Garamond", body-size: 10.5pt, title-weight: 500,
 )
 #modern-contract(theme, character: "chancery")

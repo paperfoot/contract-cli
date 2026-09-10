@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#252525"), paper: rgb("#FFFFFF"), accent: rgb("#252525"),
   mute: rgb("#595959"), hair: rgb("#CCCCCC"), watermark: rgb("#EEECE8"),
-  display-font: "Fraunces 72pt", body-font: "Newsreader 16pt", body-size: 11.5pt, title-weight: 600,
+  display-font: "Fraunces 72pt", body-font: "Newsreader 16pt", body-size: 10.5pt, title-weight: 600,
 )
 #modern-contract(theme, character: "gazette")

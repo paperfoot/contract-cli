@@ -8,7 +8,7 @@
   us-letter: 8.5in, us-legal: 8.5in, us-executive: 7.25in)
 #let paper-width = paper-widths.at(data.at("paper", default: "a4"), default: 210mm)
 #let narrow = paper-width < 170mm
-#let body-width = calc.min(140mm, paper-width - 36mm)
+#let body-width = calc.min(160mm, paper-width - 36mm)
 #let side-margin = (paper-width - body-width) / 2
 
 #let party-details(party, theme) = {
@@ -54,7 +54,7 @@
     field("Date", get("-signer-date"))
   }
   let introduction = [
-    #block(sticky: true)[#text(size: th(theme, "body-size", 11pt) + 0.5pt, weight: 600)[Agreement and signatures]]
+    #block(sticky: true)[#text(size: th(theme, "body-size", 10.5pt) + 0.5pt, weight: 600)[Agreement and signatures]]
     #v(8pt)
     #text(size: 10.5pt)[The parties agree to the terms set out above.]
     #v(18pt)
@@ -80,7 +80,7 @@
 }
 
 #let modern-contract(theme, character: "folio") = {
-  let body-size = th(theme, "body-size", 11pt)
+  let body-size = th(theme, "body-size", 10.5pt)
   set text(font: theme.body-font, size: body-size, fill: theme.ink,
     weight: 400, stretch: 100%, top-edge: 0.8em, bottom-edge: -0.2em,
     lang: "en", hyphenate: false, number-type: "lining")
@@ -94,18 +94,18 @@
   set heading(numbering: none)
   show heading.where(level: 1): it => block(above: 0pt, below: 0pt, sticky: true)[
     #set par(leading: 5pt)
-    #text(font: theme.display-font, size: 20pt,
+    #text(font: theme.display-font, size: 18pt,
       weight: th(theme, "title-weight", 500), tracking: 0pt)[#it.body]
   ]
   show heading.where(level: 2): it => block(above: 19pt, below: 7pt, sticky: true)[
     #text(size: body-size + 0.5pt, weight: 600)[#it.body]
   ]
-  // The body is centred in a 140 mm reading column (35 mm margins on A4).
+  // The body is centred in a 160 mm reading column (25 mm margins on A4).
   // Its 8 mm number gutter hangs outside, rather than narrowing the text.
   // Smaller paper reflows at the same type size; larger paper never stretches
   // the measure into overlong lines. Extra foot space balances the page.
-  let theme = theme + (margin: (top: if narrow { 18mm } else { 25mm },
-    bottom: if narrow { 22mm } else { 30mm }, left: side-margin - gutter, right: side-margin))
+  let theme = theme + (margin: (top: if narrow { 18mm } else { 22mm },
+    bottom: if narrow { 22mm } else { 25mm }, left: side-margin - gutter, right: side-margin))
   page-shell(theme, pad(left: gutter)[
     #if data.logo != none {
       image(data.logo, width: 25mm, height: 11mm, fit: "contain")

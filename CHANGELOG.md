@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- Set body text to 10.5 pt across all ten templates and reduce titles to 18 pt. Retain 145% baseline spacing, 7 pt extra paragraph separation and consistent 11 pt clause headings.
+- Reduce A4 body side margins from 35 mm to 25 mm, top margin from 25 mm to 22 mm and bottom margin from 30 mm to 25 mm. Increase the maximum reading column to 160 mm while preserving A5's narrower layout.
+- Update the typography specification and paper-geometry regression checks for the revised defaults.
+
 ## 0.3.1
 
 - Retune every document for quieter print typography: 20 pt titles, optically adjusted 10.5–11.5 pt body text, true 145% baseline spacing, 7 pt extra paragraph separation and a centred 140 mm reading column. Record online typography and reading-research sources in `docs/TYPOGRAPHY.md`.

@@ -7,6 +7,6 @@
 #let theme = (
   ink: rgb("#252525"), paper: rgb("#FFFFFF"), accent: rgb("#252525"),
   mute: rgb("#595959"), hair: rgb("#CECECE"), watermark: rgb("#EEECE8"),
-  display-font: "Literata", body-font: "Literata", body-size: 11pt, title-weight: 500,
+  display-font: "Literata", body-font: "Literata", body-size: 10.5pt, title-weight: 500,
 )
 #modern-contract(theme, character: "counsel")

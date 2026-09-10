@@ -79,6 +79,10 @@ PAPER_DIMENSIONS = {
 NON_A4_PAPERS = ("a3", "a5", "us-letter", "us-legal", "us-executive")
 DIMENSION_TOLERANCE = 0.1
 GLYPH_OVERHANG_TOLERANCE = 2.0
+# Ink bounds can extend beyond Typst's explicit line frame, particularly for
+# Literata headings at a page's top. This only separates body text from running
+# furniture; physical page bounds and horizontal grid checks remain strict.
+BODY_INK_OVERHANG = 8.0
 
 
 class SmokeFailure(RuntimeError):
@@ -166,11 +170,11 @@ def inspect_pdf(
     document = ET.fromstring(result.stdout)
     expected_width, expected_height = PAPER_DIMENSIONS[paper]
     expected_width_mm = expected_width / POINTS_PER_MM
-    body_width = min(140.0 * POINTS_PER_MM, expected_width - 36.0 * POINTS_PER_MM)
+    body_width = min(160.0 * POINTS_PER_MM, expected_width - 36.0 * POINTS_PER_MM)
     body_left = (expected_width - body_width) / 2.0
     body_right = body_left + body_width
-    body_top = (18.0 if expected_width_mm < 170.0 else 25.0) * POINTS_PER_MM
-    body_bottom = (22.0 if expected_width_mm < 170.0 else 30.0) * POINTS_PER_MM
+    body_top = (18.0 if expected_width_mm < 170.0 else 22.0) * POINTS_PER_MM
+    body_bottom = (22.0 if expected_width_mm < 170.0 else 25.0) * POINTS_PER_MM
     grid_left = body_left - 8.0 * POINTS_PER_MM - GLYPH_OVERHANG_TOLERANCE
     grid_right = body_right + GLYPH_OVERHANG_TOLERANCE
 
@@ -202,7 +206,7 @@ def inspect_pdf(
                 )
             all_words.append(word.text or "")
             page_words.append(word.text or "")
-            if body_top - 4.0 <= y0 and y1 <= height - body_bottom + 4.0:
+            if body_top - BODY_INK_OVERHANG <= y0 and y1 <= height - body_bottom + BODY_INK_OVERHANG:
                 if x0 < grid_left or x1 > grid_right:
                     raise SmokeFailure(
                         f"text escapes the responsive reading grid on page {page_number} "
