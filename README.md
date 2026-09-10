@@ -14,7 +14,28 @@ Shares issuers and clients with [invoice-cli](https://github.com/paperfoot/invoi
 - Local discovery with `kinds find` and `template find`; no model or network needed.
 - JSON output when piped, semantic exit codes, and a capability manifest via `agent-info`.
 
-## Build and install
+## Install
+
+On macOS with Homebrew (includes Typst):
+
+```sh
+brew install paperfoot/tap/contract
+# For an existing installation:
+brew update
+brew upgrade paperfoot/tap/contract
+```
+
+Or install the published crate with Rust 1.88 or newer, and install Typst separately:
+
+```sh
+brew install typst # macOS; use your package manager on other platforms
+cargo install contract-cli --locked
+contract --version
+```
+
+Use `cargo install contract-cli --locked --force` to upgrade an existing Cargo installation. If both channels are installed, `command -v contract` shows which one your shell uses.
+
+### Build from source
 
 Rust 1.88 or newer and Typst are required to build and render. The current dependencies are locked in `Cargo.lock`.
 
@@ -28,7 +49,7 @@ cargo install --path . --locked
 contract --version
 ```
 
-The source build uses the sibling `finance-core` checkout. CI pins that dependency revision. The existing `paperfoot/tap` Homebrew distribution may lag the source branch; check the installed version before relying on new flags.
+The source build uses the sibling `finance-core` checkout. CI pins that dependency revision. Homebrew and crates.io installations use the published dependency and do not need a sibling checkout.
 
 ## Quick start
 
@@ -91,7 +112,7 @@ contract template preview atelier --kind consulting --pack design --out ./design
 contract template find "quiet legal serif"
 ```
 
-All ten templates use one shared layout: a 142 mm reading column on A4, hanging clause numbers, flush-left paragraphs with visible separation, aligned lists and intact signature blocks. The original `helvetica-nera`, `vienna-legal`, `editorial`, `gazette`, `marrakech`, `basel` and `chancery` names remain available with rebuilt layouts. The default remains `helvetica-nera`.
+All ten templates use one shared layout: 10.5 pt body text, a 160 mm reading column on A4 with 25 mm side margins, hanging clause numbers, flush-left paragraphs with visible separation, aligned lists and intact signature blocks. The original `helvetica-nera`, `vienna-legal`, `editorial`, `gazette`, `marrakech`, `basel` and `chancery` names remain available with rebuilt layouts. The default remains `helvetica-nera`.
 
 Template resolution is `--template`, then the contract's stored template, then a valid shared config template, then `helvetica-nera`. A shared invoice-only template is skipped. `config set default_template folio` changes the shared accounting configuration. Every stock template uses bundled OFL fonts. Body, headings, labels and signatures share the same family within each design; Gazette adds a separate display face for its title. The typography rules and review criteria are in [the design guide](docs/TYPOGRAPHY.md).
 
