@@ -116,11 +116,11 @@
       if index == data.clauses.len() - 1 {
         // Keep a modest closing clause with execution when the measured
         // content fits comfortably on a page. Long clauses remain flowing.
-        layout(size => {
+        block(above: 19pt, layout(size => {
           let closing = [#clause-content(clause)#execution(theme)]
           let height = measure(closing, width: size.width).height
           block(breakable: height > 180mm, closing)
-        })
+        }))
       } else { clause-content(clause) }
     }
     #if data.clauses.len() == 0 { execution(theme) }
