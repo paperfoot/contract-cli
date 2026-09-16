@@ -304,14 +304,14 @@ fn cmd_new(args: ContractNewArgs, ctx: Ctx) -> Result<()> {
 
 fn default_title(kind: &str, issuer_name: &str, client_name: &str) -> String {
     match kind {
-        "nda" => format!("NDA — {issuer_name} & {client_name}"),
-        "ncnda" => format!("NCNDA — {issuer_name} & {client_name}"),
-        "consulting" => format!("Consulting Agreement — {issuer_name} × {client_name}"),
-        "msa" => format!("Master Services Agreement — {issuer_name} & {client_name}"),
-        "sow" => format!("Statement of Work — {issuer_name} × {client_name}"),
-        "service" => format!("Service Agreement — {issuer_name} for {client_name}"),
-        "loan" => format!("Loan Agreement — {issuer_name} & {client_name}"),
-        _ => format!("Agreement — {issuer_name} & {client_name}"),
+        "nda" => format!("NDA - {issuer_name} & {client_name}"),
+        "ncnda" => format!("NCNDA - {issuer_name} & {client_name}"),
+        "consulting" => format!("Consulting Agreement - {issuer_name} × {client_name}"),
+        "msa" => format!("Master Services Agreement - {issuer_name} & {client_name}"),
+        "sow" => format!("Statement of Work - {issuer_name} × {client_name}"),
+        "service" => format!("Service Agreement - {issuer_name} for {client_name}"),
+        "loan" => format!("Loan Agreement - {issuer_name} & {client_name}"),
+        _ => format!("Agreement - {issuer_name} & {client_name}"),
     }
 }
 
@@ -842,12 +842,16 @@ fn cmd_duplicate(
         .into_iter()
         .find(|c| c.id == client_id)
         .ok_or_else(|| AppError::NotFound("client".into()))?;
-    let copied_title =
-        if src.title == default_title(&src.kind, &source_issuer.name, &source_client.name) {
-            default_title(&src.kind, &issuer.name, &new_client.name)
-        } else {
-            src.title.clone()
-        };
+    let copied_title = if render::pdf_text(&src.title)
+        == render::pdf_text(&default_title(
+            &src.kind,
+            &source_issuer.name,
+            &source_client.name,
+        )) {
+        default_title(&src.kind, &issuer.name, &new_client.name)
+    } else {
+        src.title.clone()
+    };
     let new_contract = Contract {
         id: 0,
         number: new_number.clone(),

@@ -106,6 +106,26 @@ pub struct SignatureBlock {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
+/// Use ordinary hyphens in documents without dropping supported Unicode text.
+pub fn pdf_text(value: &str) -> String {
+    value.replace(['\u{2013}', '\u{2014}'], "-")
+}
+
+fn normalize_pdf_strings(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::String(text) => *text = pdf_text(text),
+        serde_json::Value::Array(values) => values.iter_mut().for_each(normalize_pdf_strings),
+        serde_json::Value::Object(values) => values.values_mut().for_each(normalize_pdf_strings),
+        _ => {}
+    }
+}
+
+fn pdf_json(data: &ContractRenderData) -> Result<Vec<u8>> {
+    let mut value = serde_json::to_value(data)?;
+    normalize_pdf_strings(&mut value);
+    Ok(serde_json::to_vec_pretty(&value)?)
+}
+
 fn fmt_date(iso: &str) -> String {
     NaiveDate::parse_from_str(iso, "%Y-%m-%d")
         .map(|d| d.format("%-d %B %Y").to_string())
@@ -762,7 +782,7 @@ pub fn build_render_data(
     ];
     // Compute subtitle: suppress when contract.title is just the auto-default.
     let auto = auto_default_title(&contract.kind, &issuer.name, &client.name);
-    let subtitle = if contract.title.trim() == auto.trim() {
+    let subtitle = if pdf_text(contract.title.trim()) == pdf_text(auto.trim()) {
         None
     } else {
         Some(contract.title.clone())
@@ -827,7 +847,7 @@ pub fn render_to_pdf(
     data.logo = stage_logo(root, issuer)?;
 
     let json_path = root.join("shared").join("contract.json");
-    std::fs::write(&json_path, serde_json::to_vec_pretty(&data)?)?;
+    std::fs::write(&json_path, pdf_json(data)?)?;
 
     let template_path = root.join("templates").join(format!("{template}.typ"));
     let mut cmd = Command::new("typst");
@@ -934,4 +954,31 @@ pub fn default_output_dir() -> std::path::PathBuf {
     std::path::PathBuf::from(home)
         .join("Documents")
         .join("Contracts")
+}
+
+#[cfg(test)]
+mod typography_tests {
+    use super::*;
+
+    #[test]
+    fn pdf_punctuation_is_normalized_without_lossy_unicode_fallbacks() {
+        let mut value = serde_json::json!({
+            "title": "Consulting Agreement — Fast Food Chemistry – Résumé",
+            "clauses": [{"body": "Müller & O’Connor: £150, €200, ×, −5; 1–3 days"}],
+            "page": 1,
+            "missing": null,
+        });
+        normalize_pdf_strings(&mut value);
+        assert_eq!(
+            value["title"],
+            "Consulting Agreement - Fast Food Chemistry - Résumé"
+        );
+        assert_eq!(
+            value["clauses"][0]["body"],
+            "Müller & O’Connor: £150, €200, ×, −5; 1-3 days"
+        );
+        assert_eq!(value["page"], 1);
+        assert!(value["missing"].is_null());
+        assert_eq!(pdf_text("NDA — Example & Client"), "NDA - Example & Client");
+    }
 }

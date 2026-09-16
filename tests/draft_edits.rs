@@ -211,6 +211,13 @@ fn duplicate_for_new_client_recomputes_auto_title_and_clears_signatures() {
     let source_number = source["number"].as_str().expect("source contract number");
 
     home.success(&[
+        "edit",
+        source_number,
+        "--title",
+        "NDA — Fictional Holdings Pte Ltd & Fictional Client Ltd",
+    ]);
+
+    home.success(&[
         "sign",
         source_number,
         "--side",
@@ -230,7 +237,7 @@ fn duplicate_for_new_client_recomputes_auto_title_and_clears_signatures() {
     let duplicated = home.success(&["duplicate", source_number, "--client", "newfictionalclient"]);
     assert_eq!(
         duplicated["title"],
-        "NDA — Fictional Holdings Pte Ltd & New Fictional Client Ltd"
+        "NDA - Fictional Holdings Pte Ltd & New Fictional Client Ltd"
     );
     assert_eq!(duplicated["governing_law"], "Singapore");
     assert_eq!(terms(&duplicated)["legal_profile"], "singapore");
